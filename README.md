@@ -1,71 +1,46 @@
-# python_cli_template
- My template for python cli tools
+# scampiman
+pipeline to align and summarize tiled amplicon coverage from raw sequences
 
+**Requires: Reads, Reference Genome(s), Primer `.bed` File**
 
-Explanations in the scripts.
+**Produces: Samtools Ampliconstats File, Table of Amplicon Coverage `.tsv`**
+
+ - Input formats
+    `.fastq` or `.bam`
+ - Input logic
+    `file(s)` or `directory` (with files)
+ - Seq tech
+    `illumina short read` or `ONT`
+
+1) Align reads to reference (`dorado aligner` or `minimap2`)
+2) samtools: view, sort, ampliconclip, ampliconstats
+3) Parse ampliconstats output into table, output `.tsv`
+
 
 # Install
 
+clone this repo
+
+## Make conda environment
+
+`conda env create -f scampiman/environment/scampiman.yml`
+
+once complete:
+
+`conda activate scampiman`
+
+## pip install scampiman
+
 Using `pip` to install any python "package" as a command line tool:
 
-This requires the `pyproject.toml` file included in this repo. Please see notes therein. Setuptools may not be the best package manager nowadays. Please feel free to explore others.
+This requires the `pyproject.toml` file included in this repo. Please see notes therein. 
 
 From the terminal:
 
-`cd python_cli_template`
+`cd scampiman`
 
 `pip install .`
 
-* This should install `pct` as a runnable command from the terminal
+* This should install `scampiman` as a runnable command from the terminal
 
-Run these on the command line to get started.
-
-"DEV" - this is how you'll run things when you're making updates and changes (specify path to script)
-
-"INSTALLED" - this is how you'll run things after `pip` installing a stable version (from any directory)
-
-### Basic
-
-DEV:
-
-`python src/pct/pct.py`
-
-INSTALLED:
-
-`pct`
-
-### Help Menu
-
-DEV:
-
-`python src/pct/pct.py -h`
-
-INSTALLED:
-
-`pct -h`
-
-### `shuth` subcommand (help menu)
-
-DEV:
-
-`python src/pct/pct.py shuth -h`
-
-INSTALLED:
-
-`pct shuth -h`
-
-
-### An arbitrary example of actually running something:
-
-DEV:
-
-`python src/pct/pct.py sqawk tigers -c title`
-
-INSTALLED:
-
-`pct sqawk tigers -c title`
-
-
-returns:
-
-`quietly: Tigers!!!!`
+# Running `scampiman`

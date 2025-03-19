@@ -29,10 +29,9 @@ where = ["src"]
 
 [project.scripts]
 # this is how you call the main tool from the command line
-# looks in 'src', then in 'pct', then reads 'pct.py' for function 'pct'
 # more commands can be given if there are multiple CLI tools in the package
-pct = "pct.pct:pct"
+scampiman = "scampiman.scampiman:scampiman"
 
 [project.urls]
-"Homepage" = "https://github.com/mtisza1/python_cli_template"
-"Bug Tracker" = "https://github.com/mtisza1/python_cli_template/issues"
+"Homepage" = "https://github.com/tiszalab/scampiman"
+"Bug Tracker" = "https://github.com/tiszalab/scampiman/issues"
