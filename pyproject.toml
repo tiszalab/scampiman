@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pct"
+version = "0.0.1" # should match version in main script
+authors = [
+  { name="Mike Tisza", email="michael.tisza@gmail.com" }, # your name here 
+]
+description = "python command line interface tool template."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+#   There aren't any dependencies for this template, but you may have some
+    "numpy",
+#    "biopython"
+]
+
+# instructs setuptools to look in the src/ directory for scripts
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+[project.scripts]
+# this is how you call the main tool from the command line
+# looks in 'src', then in 'pct', then reads 'pct.py' for function 'pct'
+# more commands can be given if there are multiple CLI tools in the package
+pct = "pct.pct:pct"
+
+[project.urls]
+"Homepage" = "https://github.com/mtisza1/python_cli_template"
+"Bug Tracker" = "https://github.com/mtisza1/python_cli_template/issues"
