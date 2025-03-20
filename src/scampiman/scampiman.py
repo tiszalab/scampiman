@@ -3,6 +3,7 @@
 import argparse
 import sys, os
 import subprocess
+import shutil
 from subprocess import Popen, PIPE, STDOUT
 from pathlib import Path
 import time
@@ -117,6 +118,11 @@ def scampiman():
     else:
         sca_temp = str(args.TEMP_DIR)
 
+    if str(sca_temp) == str(args.OUTPUT_DIR):
+        logger.error("temporary directory and output directory are the same.")
+        logger.error("This is not allowed. Exiting.")
+        sys.exit()
+
     if not os.path.isdir(sca_temp):
         os.makedirs(sca_temp)
 
@@ -218,6 +224,9 @@ def scampiman():
             logger.info(f"### detected - {fin}")
         else:
             logger.info(f"!!!! Not found - {fin}")
+    
+    if os.path.isdir(sca_temp):
+        shutil.rmtree(sca_temp)
 
     endtime = time.perf_counter()
 
