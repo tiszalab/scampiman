@@ -1,5 +1,6 @@
 import logging
 import argparse
+import pandas as pd
 from subprocess import Popen
 
 # since I'm logging, I need the same logger as in the main script
@@ -108,6 +109,37 @@ def ampstats(bed: str, clipbam: str, outf: str):
                     ],
                     stdout=PIPE, stderr=STDOUT)
 
+def samcov(sortbam: str, outf: str):
+    return subprocess.Popen(['samtools', 'coverage', sortbam],
+                            stdout=outf, 
+                            stderr=STDOUT
+                            )
+
+def amptable(ampstats: str, outf: str):
+    with open(ampstats, 'r') as sam:
+        for line in sam:
+            line = line.strip()
+            if line.startswith("FREADS"):
+                columns = line.split('\t')[2:]
+                odf = pd.DataFrame(columns, columns=['amplicon_reads'])
+                odf['amplicon_number'] = odf.index + 1
+            if line.startswith("FVDEPTH"):
+                columns = line.split('\t')[2:]
+                odf['full_length_depth'] = columns
+            if line.startswith("FDEPTH"):
+                columns = line.split('\t')[2:]
+                odf['avg_depth'] = columns
+            if line.startswith("FPCOV-1"):
+                columns = line.split('\t')[2:]
+                odf['amplicon_coverage'] = columns
+    
+    odf.to_csv(
+        outf,
+        sep = "\t",
+        index=False
+    )
+
+    return odf
 
 def str2bool(v):
     '''

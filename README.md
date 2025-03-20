@@ -44,3 +44,11 @@ From the terminal:
 * This should install `scampiman` as a runnable command from the terminal
 
 # Running `scampiman`
+
+# Other
+
+terminal commmand used to create `scampiman` conda environment:
+
+```
+$ conda create -n scampiman -c conda-forge -c bioconda python bioconda::minimap2 bioconda::samtools conda-forge::pandas 
+```

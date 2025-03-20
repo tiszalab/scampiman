@@ -6,10 +6,10 @@ import subprocess
 from subprocess import Popen, PIPE, STDOUT
 from pathlib import Path
 import time
-import re
 import logging
-import shutil
-# importing this packages functions from funcs/pctfuncs.py
+from datetime import timedelta
+
+# importing this packages functions from funcs/scampifuncs.py
 # the try/except loop allows this tool to be run as `python scampiman.py` (.funcs), for development
 # or be run as a true command line tool, `scampiman`, after being installed with pip (funcs)
 try:
@@ -129,45 +129,103 @@ def scampiman():
             logger.error(f'input file not found at {inf}. exiting.')
             sys.exit()
 
-    if str(args.rfmt) == "bam":
-        if str(args.intype) == "files":
-            if len(args.READS.split()) > 1:
-                scaf.cat_bams_files(
-                    ' '.join(map(str,args.READS)), 
-                    def_CPUs, 
-                    f'{sca_temp}/{str(args.SAMPLE)}_cat.bam'
+    align_starttime = time.perf_counter()
+
+    try:
+        if str(args.rfmt) == "bam":
+            if str(args.intype) == "files":
+                if len(args.READS.split()) > 1:
+                    scaf.cat_bams_files(
+                        ' '.join(map(str,args.READS)), 
+                        def_CPUs, 
+                        f'{sca_temp}/{str(args.SAMPLE)}_cat.bam'
                     )
+                    scaf.dorado_al(
+                        f'{sca_temp}/{str(args.SAMPLE)}_cat.bam', 
+                        def_CPUs, 
+                        f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
+                        str(args.genome)
+                    )
+                else:
+                    scaf.dorado_al(
+                        str(args.READS), 
+                        def_CPUs, 
+                        f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
+                        str(args.genome)
+                    )
+            if str(args.intype) == "directory":
+                scaf.cat_bams_dir(
+                    str(args.READS),
+                    def_CPUs,
+                    f'{sca_temp}/{str(args.SAMPLE)}_cat.bam'
+                )
                 scaf.dorado_al(
                     f'{sca_temp}/{str(args.SAMPLE)}_cat.bam', 
                     def_CPUs, 
                     f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
                     str(args.genome)
-                    )
-                scaf.ampclip(
-                    str(args.bed),
-                    f'{sca_temp}/{str(args.SAMPLE)}.sort.bam',
-                    f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam'
                 )
-                scaf.ampstats(
-                    str(args.bed),
-                    f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam',
-                    f'{sca_temp}/{str(args.SAMPLE)}.ampliconstats.tsv'
-                )
-                ### stopping point. ADD function for making tsv ###
+        if str(args.rfmt) == "fastq":
+            scaf.mini2_al(
+                ' '.join(map(str,args.READS)),
+                def_CPUs,
+                f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
+                str(args.genome)
+            )
+    except Exception as e:
+        logger.error("Read Alignment ERROR: ")
+        logger.error(e)
+
+    align_endtime = time.perf_counter()
+
+    time_taken = align_endtime - align_starttime
+
+    logger.info(f"> alignment step took {timedelta(seconds=time_taken)}")
 
 
-    if args.LOUD == True:
-        soundr: str = 'LOUDLY: '
-    else:
-        soundr: str = 'quietly: '
-    
-    # using an if statement to use the different subcommands
-    if args.command == "sqawk":
-        pctf.sqawks(args.thing, args.sqfmt, soundr)
+    if os.path.isfile(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam'):
+        try:
+            scaf.ampclip(
+                str(args.bed),
+                f'{sca_temp}/{str(args.SAMPLE)}.sort.bam',
+                f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam'
+            )
+            scaf.ampstats(
+                str(args.bed),
+                f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam',
+                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv'
+            )
 
-    if args.command == "shuth":
-        pctf.shuths(args.thing, args.shdots, soundr)
+            scaf.samcov(
+                f'{sca_temp}/{str(args.SAMPLE)}.sort.bam',
+                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.samcov.tsv'
+            )
+            scaf.amptable(
+                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv',
+                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.amplicontable.tsv'
+            )
+        except Exception as e:
+            logger.error("Amplicon Analysis ERROR: ")
+            logger.error(e)
+
+    logger.info(f"### scampiman outputs: ")
+    for fin in [
+        f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.amplicontable.tsv',
+        f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv',
+        f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.samcov.tsv'
+    ]:
+        if os.path.isfile(fin):
+            logger.info(f"### detected - {fin}")
+        else:
+            logger.info(f"!!!! Not found - {fin}")
+
+    endtime = time.perf_counter()
+
+    time_taken = endtime - starttime
+
+    logger.info(f"> scampiman took {timedelta(seconds=time_taken)}")
 
 # this is how to run the pct function by calling this script from the command line
 if __name__ == "__main__":
-    pct()
+    scampiman()
+
