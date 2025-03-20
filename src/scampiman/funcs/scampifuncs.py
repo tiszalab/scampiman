@@ -1,7 +1,8 @@
 import logging
 import argparse
 import pandas as pd
-from subprocess import Popen
+import subprocess
+from subprocess import Popen, PIPE, STDOUT
 
 # since I'm logging, I need the same logger as in the main script
 logger = logging.getLogger("pct_logger")
