@@ -41,47 +41,50 @@ def scampiman():
                                     f'Version {str(__version__)}')
     
     parser.add_argument("-r", "--reads", nargs="+",
-                            dest="READS", required=True, 
-                            help='read file(s) or directory containing read files. \
-                                fastq or unaligned bam format'
-                                )
+                        dest="READS", required=True, 
+                        help='read file(s) or directory containing read files. \
+                        fastq or unaligned bam format'
+                        )
     parser.add_argument("-b", "--bed", type=str,
-                            dest="bed", required=True, 
-                            help='bed file of primers'
-                                )
+                        dest="bed", required=True, 
+                        help='bed file of primers'
+                        )
     parser.add_argument("-g", "--genome", type=str,
-                            dest="genome", required=True, 
-                            help='genome file. Accession/sequence must match bed file'
-                                )
+                        dest="genome", required=True, 
+                        help='genome file. Accession/sequence must match bed file'
+                        )
     parser.add_argument("-s", "--sample", 
-                            dest="SAMPLE", type=str, required=True, 
-                            help='Sample name. No space characters, please.'
-                            )
+                        dest="SAMPLE", type=str, required=True, 
+                        help='Sample name. No space characters, please.'
+                        )
     parser.add_argument("-o", "--output_dir", 
-                            dest="OUTPUT_DIR", type=str, required=True, 
-                            help='Output directory name. Will be created if it does not exist. \
-                            Can be shared with other samples. No space characters, please. '
-                            )
+                        dest="OUTPUT_DIR", type=str, required=True, 
+                        help='Output directory name. Will be created if it does not exist. \
+                        Can be shared with other samples. No space characters, please. '
+                        )
     parser.add_argument("-f", "--read-format",
-                            dest="rfmt", default="fastq", 
-                            choices=['fastq', 'bam'],
-                            help='read file format'
-                            )
+                        dest="rfmt", default="fastq", 
+                        choices=['fastq', 'bam'],
+                        help='read file format'
+                        )
     parser.add_argument("-t", "--input-type",
-                            dest="intype", default="files", 
-                            choices=['files', 'directory'],
-                            help='read file format'
-                            )
+                        dest="intype", default="files", 
+                        choices=['files', 'directory'],
+                        help='read file format'
+                        )
 
     parser.add_argument("--seqtech", dest="SEQTECH",
-                            default='illumina', 
-                            choices=['illumina', 'ont'],
-                            help='Which sequencing technology produced the reads?'
-                            )
+                        default='illumina', 
+                        choices=['illumina', 'ont'],
+                        help='Which sequencing technology produced the reads?'
+                        )
     parser.add_argument("--temp", 
                         dest="TEMP_DIR", type=str, default='default',
                         help='path of temporary directory. Default is {OUTPUT_DIR}/{SAMPLE}_temp/')   
-
+    parser.add_argument("-wd", "--working_directory", dest="c_workdir", type=str, default=def_workdir, 
+                        help=f"Default: {def_workdir} -- \
+                        Set working directory with absolute or relative path. \
+                        Run directory will be created within.")
     # you need to run this line to parse the arguments
     args = parser.parse_args()
 
