@@ -130,8 +130,6 @@ def scampiman():
     if not os.path.isdir(sca_temp):
         os.makedirs(sca_temp)
 
-    if str(args.intype) == 'files':
-         READS = ' '.join(map(str,args.READS))
 
     #check if files exist
     for inf in [args.genome, args.bed]:
@@ -141,12 +139,21 @@ def scampiman():
 
     align_starttime = time.perf_counter()
 
+    logger.info(f'Starting alignment.')
+
+    READ_STR = ' '.join(map(str,args.READS))
+    logger.info(f'read string: ')
+    logger.info(f'{READ_STR}')
+
     try:
         if str(args.rfmt) == "bam":
+            logger.info(f'> bam option ')
             if str(args.intype) == "files":
-                if len(args.READS.split()) > 1:
+                logger.info(f'> files option ')
+
+                if len(args.READS) > 1:
                     scaf.cat_bams_files(
-                        ' '.join(map(str,args.READS)), 
+                        READ_STR, 
                         def_CPUs, 
                         f'{sca_temp}/{str(args.SAMPLE)}_cat.bam'
                     )
@@ -158,17 +165,24 @@ def scampiman():
                     )
                 else:
                     scaf.dorado_al(
-                        str(args.READS), 
+                        READ_STR, 
                         def_CPUs, 
                         f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
                         str(args.genome)
                     )
             if str(args.intype) == "directory":
-                scaf.cat_bams_dir(
-                    str(args.READS),
-                    def_CPUs,
-                    f'{sca_temp}/{str(args.SAMPLE)}_cat.bam'
-                )
+                logger.info(f'> directory option ')
+                try: 
+                    scaf.cat_bams_dir(
+                        READ_STR,
+                        def_CPUs,
+                        f'{sca_temp}/{str(args.SAMPLE)}_cat.bam'
+                    )
+                except Exception as e:
+                    logger.error("samtools cat not successful:")
+                    logger.error(e)
+
+
                 scaf.dorado_al(
                     f'{sca_temp}/{str(args.SAMPLE)}_cat.bam', 
                     def_CPUs, 
@@ -176,8 +190,9 @@ def scampiman():
                     str(args.genome)
                 )
         if str(args.rfmt) == "fastq":
+            logger.info(f'> fastq option ')
             scaf.mini2_al(
-                ' '.join(map(str,args.READS)),
+                READ_STR,
                 def_CPUs,
                 f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
                 str(args.genome)
@@ -192,28 +207,76 @@ def scampiman():
 
     logger.info(f"> alignment step took {timedelta(seconds=time_taken)}")
 
+    logger.info(f'Starting amplicon analysis.')
+
+    logger.info(f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv')
+    logger.info(str(args.bed))
+    logger.info(f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam')
 
     if os.path.isfile(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam'):
         try:
+            logger.info(f'ampclip')
             scaf.ampclip(
                 str(args.bed),
                 f'{sca_temp}/{str(args.SAMPLE)}.sort.bam',
                 f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam'
             )
+            ##### SOMETHING IS GOING ON WITH PYTHON RECOGNIZING f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam' ####
+            if os.path.exists(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam'):
+                logger.info(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam is found')
+            else:
+                logger.info(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam NOT found')
+
+            if os.path.exists(f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam'):
+                logger.info(f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam is found')
+            else:
+                logger.info(f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam NOT found')
+                
+            logger.info(f'ampstats')
             scaf.ampstats(
                 str(args.bed),
-                f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam',
+                f'{sca_temp}/{str(args.SAMPLE)}.sort.bam',
                 f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv'
             )
+#            clipf = os.path.join(sca_temp, args.SAMPLE + '.ampclip.bam')
+#            scaf.run_samtools_ampliconstats(
+#                str(args.bed), 
+#                #f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam', 
+#                os.path.join(sca_temp, args.SAMPLE + '.sort.bam'),
+#                #str(clipf),
+#                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv'
+#                
+#            )
+#            ampf = os.path.join({str(args.OUTPUT_DIR)}, f'{str(args.SAMPLE)}.ampliconstats.tsv')
+#            logger.info(f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv')
+#            try:
+#                subprocess.Popen(['samtools', 'ampliconstats', 
+#                        '-o', 
+#                        f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv',
+#                        str(args.bed), 
+#                        f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam'
+#                        ], 
+#                        shell=False
+#                )
+#            except Exception as e:
+#                logger.error(e)
 
+            logger.info(f'samcov')
             scaf.samcov(
                 f'{sca_temp}/{str(args.SAMPLE)}.sort.bam',
                 f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.samcov.tsv'
             )
-            scaf.amptable(
-                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv',
-                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.amplicontable.tsv'
+            logger.info(f'amptable')
+            odf = scaf.amptable(
+                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv'
             )
+
+            odf.to_csv(
+                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.amplicontable.tsv',
+                sep = "\t",
+                index=False
+            )
+
         except Exception as e:
             logger.error("Amplicon Analysis ERROR: ")
             logger.error(e)
@@ -229,8 +292,8 @@ def scampiman():
         else:
             logger.info(f"!!!! Not found - {fin}")
     
-    if os.path.isdir(sca_temp):
-        shutil.rmtree(sca_temp)
+#    if os.path.isdir(sca_temp):
+#        shutil.rmtree(sca_temp)
 
     endtime = time.perf_counter()
 

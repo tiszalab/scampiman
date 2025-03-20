@@ -1,5 +1,6 @@
 import logging
 import argparse
+import sys, os
 import pandas as pd
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
@@ -8,15 +9,26 @@ from subprocess import Popen, PIPE, STDOUT
 logger = logging.getLogger("pct_logger")
 
 def cat_bams_dir(readdir: str, cpus: int, outf: str) -> Popen:
+    bam_list = []
+    for bam in os.listdir(readdir):
+        if bam.endswith('.bam'):
+            f = os.path.join(readdir, bam)
 
-    return subprocess.Popen(['samtools', 'cat', '--threads', cpus,
+            if os.path.isfile(f) and os.path.getsize(f) > 0:
+                bam_list.append(f)
+
+    #logger.info(' '.join(bam_list))
+    bamfs: str = ' '.join(bam_list)
+
+    return subprocess.Popen(['samtools', 'cat',
                     '-o', outf,
-                    f'{readdir}/*bam'],
+                    bamfs
+                    ],
                     stdout=PIPE, stderr=STDOUT)
 
 def cat_bams_files(readfiles: str, cpus: int, outf: str) -> Popen:
 
-    return subprocess.Popen(['samtools', 'cat', '--threads', cpus,
+    return subprocess.Popen(['samtools', 'cat',
                     '-o', outf,
                     readfiles],
                     stdout=PIPE, stderr=STDOUT)
@@ -25,7 +37,8 @@ def dorado_al(bam: str, cpus: int, outf: str, ref: str):
 
     sortbam = open(outf, 'a')
 
-    dorado_command = ['dorado', 'aligner', '-t', cpus, ref, bam]
+
+    dorado_command = ['dorado', 'aligner', '-t', str(cpus), ref, bam]
 
     # Second command-line
     view_command = ['samtools', 'view', '-F', '4', '-Sb']
@@ -55,14 +68,17 @@ def dorado_al(bam: str, cpus: int, outf: str, ref: str):
 
     # Let stream flow between them
     output, _ = sort_process.communicate()
+    if output:
+        return output
+    else:
+        return None
 
-    return output.decode()
 
 def mini2_al(fq: str, cpus: int, outf: str, ref: str):
 
     sortbam = open(outf, 'a')
 
-    mini_command = ['minimap2', '-ax', 'sr', '-t', cpus, ref, fq]
+    mini_command = ['minimap2', '-ax', 'sr', '-t', str(cpus), ref, fq]
 
     # Second command-line
     view_command = ['samtools', 'view', '-F', '4', '-Sb']
@@ -93,7 +109,10 @@ def mini2_al(fq: str, cpus: int, outf: str, ref: str):
     # Let stream flow between them
     output, _ = sort_process.communicate()
 
-    return output.decode()
+    if output:
+        return output
+    else:
+        return None
 
 def ampclip(bed: str, sortbam: str, outf: str):
 
@@ -103,26 +122,94 @@ def ampclip(bed: str, sortbam: str, outf: str):
                     stdout=PIPE, stderr=STDOUT)
 
 def ampstats(bed: str, clipbam: str, outf: str):
+
+#    ampout = subprocess.run(['samtools', 'ampliconstats', 
+#                    '-o', outf,
+#                    bed, clipbam
+#                    ],
+#                    capture_output=True, text=True, check=True)
     
+#    return ampout.stderr
+#    ampf = open(outf, 'a')
     return subprocess.Popen(['samtools', 'ampliconstats', 
                     '-o', outf,
                     bed, clipbam
                     ],
                     stdout=PIPE, stderr=STDOUT)
 
+
+
+def run_samtools_ampliconstats(bed_file, clip_bam_file, output_file):
+    """
+    Run samtools ampliconstats with the specified parameters.
+    
+    Args:
+        bed_file (str): Path to the BED file with amplicon regions
+        clip_bam_file (str): Path to the clipped BAM file
+        output_file (str): Path to write the output results
+        
+    Returns:
+        bool: True if the command executed successfully, False otherwise
+    """
+    try:
+        # Ensure the input files exist
+        if not os.path.isfile(bed_file):
+            raise FileNotFoundError(f"BED file not found: {bed_file}")
+        
+        if not os.path.isfile(clip_bam_file):
+            raise FileNotFoundError(f"BAM file not found: {clip_bam_file}")
+        
+        # Build the command
+        command = ["samtools", "ampliconstats", "-o", output_file, bed_file, clip_bam_file]
+        
+        # Run the command
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        
+        print(f"Command completed successfully. Output saved to: {output_file}")
+        return True
+        
+    except FileNotFoundError as e:
+        print(f"Error: {str(e)}")
+        return False
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed with return code {e.returncode}")
+        print(f"Error output: {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"An unexpected error occurred: {str(e)}")
+        return False
+
+
 def samcov(sortbam: str, outf: str):
+
+    covf = open(outf, 'a')
     return subprocess.Popen(['samtools', 'coverage', sortbam],
-                            stdout=outf, 
+                            stdout=covf, 
                             stderr=STDOUT
                             )
 
-def amptable(ampstats: str, outf: str):
+def amptable(ampstats: str):
+
+    odf = pd.DataFrame(columns=[
+        'amplicon_number',
+        'amplicon_reads',
+        'full_length_depth',
+        'avg_depth',
+        'amplicon_coverage'
+        ]
+    )
     with open(ampstats, 'r') as sam:
         for line in sam:
             line = line.strip()
             if line.startswith("FREADS"):
                 columns = line.split('\t')[2:]
-                odf = pd.DataFrame(columns, columns=['amplicon_reads'])
+                odf['amplicon_reads'] = columns
                 odf['amplicon_number'] = odf.index + 1
             if line.startswith("FVDEPTH"):
                 columns = line.split('\t')[2:]
@@ -133,12 +220,6 @@ def amptable(ampstats: str, outf: str):
             if line.startswith("FPCOV-1"):
                 columns = line.split('\t')[2:]
                 odf['amplicon_coverage'] = columns
-    
-    odf.to_csv(
-        outf,
-        sep = "\t",
-        index=False
-    )
 
     return odf
 
