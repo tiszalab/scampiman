@@ -2,7 +2,7 @@
 
 import argparse
 import sys, os
-#import subprocess
+import pysam
 import shutil
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
@@ -216,63 +216,41 @@ def scampiman():
     if os.path.isfile(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam'):
         try:
             logger.info(f'ampclip')
-            scaf.ampclip(
-                str(args.bed),
-                f'{sca_temp}/{str(args.SAMPLE)}.sort.bam',
-                f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam'
+            ampclo = pysam.ampliconclip(
+                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
+                catch_stdout = True
             )
-            ##### SOMETHING IS GOING ON WITH PYTHON RECOGNIZING f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam' ####
-            if os.path.exists(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam'):
-                logger.info(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam is found')
-            else:
-                logger.info(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam NOT found')
 
-            if os.path.exists(f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam'):
-                logger.info(f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam is found')
-            else:
-                logger.info(f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam NOT found')
-                
-            logger.info(f'ampstats')
-            scaf.ampstats(
-                str(args.bed),
-                f'{sca_temp}/{str(args.SAMPLE)}.sort.bam',
-                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv'
+            ampsto = pysam.ampliconstats(
+                ampclo,
+                save_stdout = os.path.join(
+                    args.OUTPUT_DIR,
+                    f'{str(args.SAMPLE)}.ampliconstats.tsv'
+                )
             )
-#            clipf = os.path.join(sca_temp, args.SAMPLE + '.ampclip.bam')
-#            scaf.run_samtools_ampliconstats(
-#                str(args.bed), 
-#                #f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam', 
-#                os.path.join(sca_temp, args.SAMPLE + '.sort.bam'),
-#                #str(clipf),
-#                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv'
-#                
-#            )
-#            ampf = os.path.join({str(args.OUTPUT_DIR)}, f'{str(args.SAMPLE)}.ampliconstats.tsv')
-#            logger.info(f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv')
-#            try:
-#                subprocess.Popen(['samtools', 'ampliconstats', 
-#                        '-o', 
-#                        f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv',
-#                        str(args.bed), 
-#                        f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam'
-#                        ], 
-#                        shell=False
-#                )
-#            except Exception as e:
-#                logger.error(e)
 
             logger.info(f'samcov')
-            scaf.samcov(
-                f'{sca_temp}/{str(args.SAMPLE)}.sort.bam',
-                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.samcov.tsv'
+            pysam.coverage(
+                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
+                save_stdout = os.path.join(
+                    args.OUTPUT_DIR, 
+                    f'{str(args.SAMPLE)}.samcov.tsv'
+                    )
             )
+
             logger.info(f'amptable')
             odf = scaf.amptable(
-                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv'
+                os.path.join(
+                    args.OUTPUT_DIR,
+                    f'{str(args.SAMPLE)}.ampliconstats.tsv'
+                )
             )
 
             odf.to_csv(
-                f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.amplicontable.tsv',
+                os.path.join(
+                    args.OUTPUT_DIR,
+                    f'{str(args.SAMPLE)}.amplicontable.tsv'
+                ),
                 sep = "\t",
                 index=False
             )

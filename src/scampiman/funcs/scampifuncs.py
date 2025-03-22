@@ -1,5 +1,6 @@
 import logging
 import argparse
+import pysam
 import sys, os
 import pandas as pd
 import subprocess
@@ -25,6 +26,29 @@ def cat_bams_dir(readdir: str, cpus: int, outf: str) -> Popen:
                     bamfs
                     ],
                     stdout=PIPE, stderr=STDOUT)
+
+def pysam_cat(reads: str, ftype: str, outf: str):
+
+    if ftype == "directory":
+        bam_list = []
+        for bam in os.listdir(reads):
+            if bam.endswith('.bam'):
+                f = os.path.join(reads, bam)
+
+                if os.path.isfile(f) and os.path.getsize(f) > 0:
+                    bam_list.append(f)
+        bamfs: str = ' '.join(bam_list)
+
+        pysam.cat(
+            bam_list,
+            save_stdout = outf
+        )
+    elif ftype == "files":
+
+        pysam.cat(
+            reads,
+            save_stdout = outf
+        )  
 
 def cat_bams_files(readfiles: str, cpus: int, outf: str) -> Popen:
 
