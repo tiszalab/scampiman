@@ -9,24 +9,6 @@ from subprocess import Popen, PIPE, STDOUT
 # since I'm logging, I need the same logger as in the main script
 logger = logging.getLogger("pct_logger")
 
-def cat_bams_dir(readdir: str, cpus: int, outf: str) -> Popen:
-    bam_list = []
-    for bam in os.listdir(readdir):
-        if bam.endswith('.bam'):
-            f = os.path.join(readdir, bam)
-
-            if os.path.isfile(f) and os.path.getsize(f) > 0:
-                bam_list.append(f)
-
-    #logger.info(' '.join(bam_list))
-    bamfs: str = ' '.join(bam_list)
-
-    return subprocess.Popen(['samtools', 'cat',
-                    '-o', outf,
-                    bamfs
-                    ],
-                    stdout=PIPE, stderr=STDOUT)
-
 def pysam_cat(reads: str, ftype: str, outf: str):
 
     if ftype == "directory":
@@ -37,25 +19,26 @@ def pysam_cat(reads: str, ftype: str, outf: str):
 
                 if os.path.isfile(f) and os.path.getsize(f) > 0:
                     bam_list.append(f)
-        bamfs: str = ' '.join(bam_list)
 
         pysam.cat(
-            bam_list,
-            save_stdout = outf
+            *bam_list,
+            save_stdout = outf,
+            catch_stdout = False
         )
     elif ftype == "files":
+        bam_list = []
+        for bam in reads.split():
+            if bam.endswith('.bam'):
+                f = os.path.abspath(bam)
 
+                if os.path.isfile(f) and os.path.getsize(f) > 0:
+                    bam_list.append(f)
         pysam.cat(
-            reads,
-            save_stdout = outf
-        )  
+            *bam_list,
+            save_stdout = outf,
+            catch_stdout = False
+        )
 
-def cat_bams_files(readfiles: str, cpus: int, outf: str) -> Popen:
-
-    return subprocess.Popen(['samtools', 'cat',
-                    '-o', outf,
-                    readfiles],
-                    stdout=PIPE, stderr=STDOUT)
 
 def dorado_al(bam: str, cpus: int, outf: str, ref: str):
 
@@ -98,11 +81,21 @@ def dorado_al(bam: str, cpus: int, outf: str, ref: str):
         return None
 
 
-def mini2_al(fq: str, cpus: int, outf: str, ref: str):
-
+def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str):
+    print("mini2_al")
+    print(fq)
     sortbam = open(outf, 'a')
 
-    mini_command = ['minimap2', '-ax', 'sr', '-t', str(cpus), ref, fq]
+    if tech == "ont":
+        targ = "lr:hq"
+    elif tech == "illumina":
+        targ = "sr"
+
+    fq_list = []
+    for faq in fq:
+        if os.path.isfile(faq) and os.path.getsize(faq) > 0:
+            fq_list.append(os.path.abspath(faq))
+    mini_command = ['minimap2', '-ax', targ, '-t', str(cpus), ref, *fq_list]
 
     # Second command-line
     view_command = ['samtools', 'view', '-F', '4', '-Sb']
@@ -218,34 +211,74 @@ def samcov(sortbam: str, outf: str):
                             stderr=STDOUT
                             )
 
-def amptable(ampstats: str):
+def amptable(ampstats: str, sampid: str) -> pd.DataFrame:
 
     odf = pd.DataFrame(columns=[
+        'accession',
         'amplicon_number',
-        'amplicon_reads',
-        'full_length_depth',
-        'avg_depth',
-        'amplicon_coverage'
+        'lprimer',
+        'rprimer'
         ]
     )
     with open(ampstats, 'r') as sam:
         for line in sam:
             line = line.strip()
+            if line.startswith("AMPLICON"):
+                ampinfo = line.split('\t')[1:]
+                odf.loc[len(odf)] = ampinfo
             if line.startswith("FREADS"):
                 columns = line.split('\t')[2:]
-                odf['amplicon_reads'] = columns
-                odf['amplicon_number'] = odf.index + 1
+                if len(odf) == len(columns):
+                    odf['amplicon_reads'] = columns
+                else:
+                    raise Exception("amplicon_reads data incorrect length")
+
             if line.startswith("FVDEPTH"):
                 columns = line.split('\t')[2:]
-                odf['full_length_depth'] = columns
+                if len(odf) == len(columns):
+                    odf['full_length_depth'] = columns
+                else:
+                    raise Exception("full_length_depth data incorrect length")
             if line.startswith("FDEPTH"):
                 columns = line.split('\t')[2:]
-                odf['avg_depth'] = columns
+                if len(odf) == len(columns):
+                    odf['avg_depth'] = columns
+                else:
+                    raise Exception("avg_depth data incorrect length")
             if line.startswith("FPCOV-1"):
                 columns = line.split('\t')[2:]
-                odf['amplicon_coverage'] = columns
-
+                if len(odf) == len(columns):
+                    odf['amplicon_coverage'] = columns
+                else:
+                    raise Exception("amplicon_coverage data incorrect length")
+    odf['sample_ID'] = sampid
     return odf
+
+def bed_genome_match(bed: str, genome: str) -> bool:
+    bedlist = []
+    with open(bed, 'r') as bf:
+        for line in bf:
+            line = line.strip()
+            acc = line.split('\t')[0]
+            if acc not in bedlist:
+                bedlist.append(acc)
+    
+    genomelist = []
+    with open(genome, 'r') as gf:
+        for line in gf:
+            line = line.strip()
+            if line.startswith(">"):
+                acc = line.lstrip(">").split(' ')[0]
+                if acc not in genomelist:
+                    genomelist.append(acc)
+
+    if set(bedlist) == set(genomelist):
+        return True
+    else:
+        logger.info(f'BED: {set(bedlist)}')
+        logger.info(f'GENOME: {set(genomelist)}')
+        return False
+
 
 def str2bool(v):
     '''

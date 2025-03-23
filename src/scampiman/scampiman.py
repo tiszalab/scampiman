@@ -145,6 +145,16 @@ def scampiman():
     logger.info(f'read string: ')
     logger.info(f'{READ_STR}')
 
+    #check if bed and genome files have same accessions
+    if not scaf.bed_genome_match(
+        str(args.bed),
+        str(args.genome)
+    ):
+        logger.error("accessions in bed file and genome file do not match.")
+        logger.error("Exiting.")
+        sys.exit()
+        
+    # run main pipeline
     try:
         if str(args.rfmt) == "bam":
             logger.info(f'> bam option ')
@@ -152,50 +162,53 @@ def scampiman():
                 logger.info(f'> files option ')
 
                 if len(args.READS) > 1:
-                    scaf.cat_bams_files(
-                        READ_STR, 
-                        def_CPUs, 
-                        f'{sca_temp}/{str(args.SAMPLE)}_cat.bam'
+                    scaf.pysam_cat(
+                        READ_STR,
+                        args.intype,
+                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
                     )
+
                     scaf.dorado_al(
-                        f'{sca_temp}/{str(args.SAMPLE)}_cat.bam', 
+                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
                         def_CPUs, 
-                        f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
+                        os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
                         str(args.genome)
                     )
+
                 else:
                     scaf.dorado_al(
                         READ_STR, 
                         def_CPUs, 
-                        f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
+                        os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
                         str(args.genome)
                     )
             if str(args.intype) == "directory":
                 logger.info(f'> directory option ')
                 try: 
-                    scaf.cat_bams_dir(
+                    scaf.pysam_cat(
                         READ_STR,
-                        def_CPUs,
-                        f'{sca_temp}/{str(args.SAMPLE)}_cat.bam'
+                        args.intype,
+                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
                     )
                 except Exception as e:
                     logger.error("samtools cat not successful:")
                     logger.error(e)
 
-
                 scaf.dorado_al(
-                    f'{sca_temp}/{str(args.SAMPLE)}_cat.bam', 
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
                     def_CPUs, 
-                    f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
                     str(args.genome)
                 )
+
         if str(args.rfmt) == "fastq":
             logger.info(f'> fastq option ')
             scaf.mini2_al(
-                READ_STR,
+                args.READS,
                 def_CPUs,
-                f'{sca_temp}/{str(args.SAMPLE)}.sort.bam', 
-                str(args.genome)
+                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
+                str(args.genome),
+                args.SEQTECH
             )
     except Exception as e:
         logger.error("Read Alignment ERROR: ")
@@ -209,24 +222,43 @@ def scampiman():
 
     logger.info(f'Starting amplicon analysis.')
 
-    logger.info(f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv')
-    logger.info(str(args.bed))
-    logger.info(f'{sca_temp}/{str(args.SAMPLE)}.ampclip.bam')
-
-    if os.path.isfile(f'{sca_temp}/{str(args.SAMPLE)}.sort.bam'):
+    if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
             logger.info(f'ampclip')
-            ampclo = pysam.ampliconclip(
+            '''
+            pysam.ampliconclip(
+                "-b", str(args.bed),
                 os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                catch_stdout = True
+                save_stdout = os.path.join(
+                    sca_temp, 
+                    f'{str(args.SAMPLE)}.ampclip.bam'
+                    ),
+                catch_stdout = False
+
+            )
+            '''
+            pysam.samtools.ampliconclip(
+                '-b', args.bed,
+                '-o', 
+                os.path.join(
+                    sca_temp, 
+                    f'{str(args.SAMPLE)}.ampclip.bam'
+                    ),
+                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')
             )
 
-            ampsto = pysam.ampliconstats(
-                ampclo,
-                save_stdout = os.path.join(
+
+            pysam.samtools.ampliconstats(
+                '-o', 
+                os.path.join(
                     args.OUTPUT_DIR,
                     f'{str(args.SAMPLE)}.ampliconstats.tsv'
-                )
+                ),
+                args.bed,
+                os.path.join(
+                    sca_temp, 
+                    f'{str(args.SAMPLE)}.ampclip.bam'
+                    )
             )
 
             logger.info(f'samcov')
@@ -243,7 +275,8 @@ def scampiman():
                 os.path.join(
                     args.OUTPUT_DIR,
                     f'{str(args.SAMPLE)}.ampliconstats.tsv'
-                )
+                ),
+                args.SAMPLE
             )
 
             odf.to_csv(
