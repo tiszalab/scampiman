@@ -1,0 +1,10 @@
+name: scampiman
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - bioconda::minimap2
+  - bioconda::pysam
+  - bioconda::samtools
+  - conda-forge::pandas
+  - python
