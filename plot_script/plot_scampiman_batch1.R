@@ -125,10 +125,12 @@ heatp <- amp_index_dt %>%
              scales = "free",
              space = "free"
   ) +
-  scale_fill_gradient(
-    low = "#54D8B1",
+  scale_fill_gradient2(
+    low = "gold",
+    mid = "#54D8B1",
     high = "#175149",
-    na.value = "grey90"
+    na.value = "grey90",
+    midpoint = 2
   ) +
   theme_bw() +
   theme(legend.position = "bottom")
@@ -188,7 +190,7 @@ ggsave(
     args[2]
   ),
   width = 15,
-  height = 9
+  height = 12
 )
 
 
