@@ -135,6 +135,7 @@ def ampclip(bed: str, sortbam: str, outf: str):
 
     return subprocess.Popen(['samtools', 'ampliconclip', '-b', bed,
                     '-o', outf,
+                    '--both-ends',
                     sortbam],
                     stdout=PIPE, stderr=STDOUT)
 
