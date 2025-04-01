@@ -72,50 +72,62 @@ index_files <- list.files(
 
 #index_files
 
-## make big dt
-if (exists("index_dt")){
-  rm(index_dt)
-}
-for (indexf in index_files){
-  basef <- basename(indexf)
-  projID <- basename(dirname(indexf))
-  
-  if (!exists("index_dt")){
-    index_dt <- read_excel(
-      indexf
-    ) %>%
-      mutate(project_ID = projID,
-             sample_ID = gsub("NB", "barcode",`Barcode ID`))
+if (length(index_files) > 0) {
+  ## make big dt
+  if (exists("index_dt")){
+    rm(index_dt)
   }
-  else if (exists("index_dt")){
-    tmp_dataset <- read_excel(
-      indexf
-    ) %>%
-      mutate(project_ID = projID,
-             sample_ID = gsub("NB", "barcode",`Barcode ID`))
+  for (indexf in index_files){
+    basef <- basename(indexf)
+    projID <- basename(dirname(indexf))
     
-    index_dt <- rbindlist(
-      list(index_dt,
-      tmp_dataset),
-      fill = TRUE
-    ) 
-    rm(tmp_dataset)
+    if (!exists("index_dt")){
+      index_dt <- read_excel(
+        indexf
+      ) %>%
+        mutate(project_ID = projID,
+              sample_ID = gsub("NB", "barcode",`Barcode ID`))
+    }
+    else if (exists("index_dt")){
+      tmp_dataset <- read_excel(
+        indexf
+      ) %>%
+        mutate(project_ID = projID,
+              sample_ID = gsub("NB", "barcode",`Barcode ID`))
+      
+      index_dt <- rbindlist(
+        list(index_dt,
+        tmp_dataset),
+        fill = TRUE
+      ) 
+      rm(tmp_dataset)
+    }
+    
   }
-  
+
+  #index_dt
+
+  amp_index_dt <- merge(
+    amp_dataset,
+    index_dt,
+    by = c("sample_ID", "project_ID")
+  ) %>%
+    mutate(`Sample ID` = replace_na(`Sample ID`, sample_ID)) %>%
+    rename(sampid = `Sample ID`)
+} else {
+
+  amp_index_dt <- amp_dataset %>%
+    rename(sampid = sample_ID)
+    
 }
 
-#index_dt
 
-amp_index_dt <- merge(
-  amp_dataset,
-  index_dt,
-  by = c("sample_ID", "project_ID")
-)
+
 
 heatp <- amp_index_dt %>%
   ggplot(aes(
     x = amplicon_number,
-    y = `Sample ID`,
+    y = sampid,
     fill = log10(amplicon_reads)
   )
   ) +
@@ -138,7 +150,7 @@ heatp <- amp_index_dt %>%
 
 barp <- amp_index_dt %>%
   group_by(
-    project_ID, `Sample ID`, accession
+    project_ID, sampid, accession
   ) %>%
   summarize(
     amps_covered = sum(amplicon_reads  != 0),
@@ -148,7 +160,7 @@ barp <- amp_index_dt %>%
   mutate(perc_amps = amps_covered/n_amps) %>%
   ggplot(aes(
     x = perc_amps,
-    y = `Sample ID`,
+    y = sampid,
     fill = avg_cov
   )
   ) +

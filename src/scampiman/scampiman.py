@@ -81,7 +81,10 @@ def scampiman():
                         )
     parser.add_argument("--temp", 
                         dest="TEMP_DIR", type=str, default='default',
-                        help='path of temporary directory. Default is {OUTPUT_DIR}/{SAMPLE}_temp/')   
+                        help='path of temporary directory. Default is {OUTPUT_DIR}/{SAMPLE}_temp/')
+    parser.add_argument("--keep", 
+                        dest="KEEP", type=scaf.str2bool, default='False',
+                        help='True of False. Keep the intermediate files, located in the temporary directory? These can add up, so it is not recommended if space is a concern.') 
     parser.add_argument("-wd", "--working_directory", dest="c_workdir", type=str, default=def_workdir, 
                         help=f"Default: {def_workdir} -- \
                         Set working directory with absolute or relative path. \
@@ -303,8 +306,8 @@ def scampiman():
         else:
             logger.info(f"!!!! Not found - {fin}")
     
-#    if os.path.isdir(sca_temp):
-#        shutil.rmtree(sca_temp)
+    if os.path.isdir(sca_temp) and args.KEEP is True:
+        shutil.rmtree(sca_temp)
 
     endtime = time.perf_counter()
 
