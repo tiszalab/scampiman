@@ -115,13 +115,8 @@ def scampiman():
     if not os.path.isdir(out_directory):
         os.makedirs(out_directory)
 
-    samp_out_dir = os.path.join(out_directory, str(args.SAMPLE))
-
-    if not os.path.isdir(samp_out_dir):
-        os.makedirs(samp_out_dir)
-
     if str(args.TEMP_DIR) == 'default':
-        sca_temp = os.path.join(samp_out_dir, f'{str(args.SAMPLE)}_temp')
+        sca_temp = os.path.join(out_directory, f'{str(args.SAMPLE)}_temp')
     else:
         sca_temp = str(args.TEMP_DIR)
 
@@ -132,6 +127,8 @@ def scampiman():
 
     if not os.path.isdir(sca_temp):
         os.makedirs(sca_temp)
+        logger.info(f"temp dir: {sca_temp}")
+        logger.info(os.listdir(sca_temp))
 
 
     #check if files exist
@@ -168,7 +165,8 @@ def scampiman():
                     scaf.pysam_cat(
                         READ_STR,
                         args.intype,
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
+                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'),
+                        def_CPUs
                     )
 
                     scaf.dorado_al(
@@ -191,7 +189,8 @@ def scampiman():
                     scaf.pysam_cat(
                         READ_STR,
                         args.intype,
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
+                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'),
+                        def_CPUs
                     )
                 except Exception as e:
                     logger.error("samtools cat not successful:")
@@ -263,14 +262,16 @@ def scampiman():
                     f'{str(args.SAMPLE)}.ampclip.bam'
                     )
             )
+            logger.info(f"temp dir: {sca_temp}")
+            logger.info(os.listdir(sca_temp))
 
             logger.info(f'samcov')
-            pysam.coverage(
-                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                save_stdout = os.path.join(
+            pysam.samtools.coverage(
+                '-o', os.path.join(
                     args.OUTPUT_DIR, 
                     f'{str(args.SAMPLE)}.samcov.tsv'
-                    )
+                    ),
+                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam') 
             )
 
             logger.info(f'amptable')
@@ -306,7 +307,8 @@ def scampiman():
         else:
             logger.info(f"!!!! Not found - {fin}")
     
-    if os.path.isdir(sca_temp) and args.KEEP is True:
+    if os.path.isdir(sca_temp) and not args.KEEP:
+        logger.info(f"removing temp files in: {sca_temp}")
         shutil.rmtree(sca_temp)
 
     endtime = time.perf_counter()

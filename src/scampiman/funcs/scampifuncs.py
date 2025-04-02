@@ -20,11 +20,6 @@ def pysam_cat(reads: str, ftype: str, outf: str):
                 if os.path.isfile(f) and os.path.getsize(f) > 0:
                     bam_list.append(f)
 
-        pysam.cat(
-            *bam_list,
-            save_stdout = outf,
-            catch_stdout = False
-        )
     elif ftype == "files":
         bam_list = []
         for bam in reads.split():
@@ -33,12 +28,11 @@ def pysam_cat(reads: str, ftype: str, outf: str):
 
                 if os.path.isfile(f) and os.path.getsize(f) > 0:
                     bam_list.append(f)
-        pysam.cat(
-            *bam_list,
-            save_stdout = outf,
-            catch_stdout = False
-        )
 
+    pysam.samtools.cat(
+        '-o', outf,
+        *bam_list
+    )
 
 def dorado_al(bam: str, cpus: int, outf: str, ref: str):
 
@@ -131,86 +125,6 @@ def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str):
     else:
         return None
 
-def ampclip(bed: str, sortbam: str, outf: str):
-
-    return subprocess.Popen(['samtools', 'ampliconclip', '-b', bed,
-                    '-o', outf,
-                    '--both-ends',
-                    sortbam],
-                    stdout=PIPE, stderr=STDOUT)
-
-def ampstats(bed: str, clipbam: str, outf: str):
-
-#    ampout = subprocess.run(['samtools', 'ampliconstats', 
-#                    '-o', outf,
-#                    bed, clipbam
-#                    ],
-#                    capture_output=True, text=True, check=True)
-    
-#    return ampout.stderr
-#    ampf = open(outf, 'a')
-    return subprocess.Popen(['samtools', 'ampliconstats', 
-                    '-o', outf,
-                    bed, clipbam
-                    ],
-                    stdout=PIPE, stderr=STDOUT)
-
-
-
-def run_samtools_ampliconstats(bed_file, clip_bam_file, output_file):
-    """
-    Run samtools ampliconstats with the specified parameters.
-    
-    Args:
-        bed_file (str): Path to the BED file with amplicon regions
-        clip_bam_file (str): Path to the clipped BAM file
-        output_file (str): Path to write the output results
-        
-    Returns:
-        bool: True if the command executed successfully, False otherwise
-    """
-    try:
-        # Ensure the input files exist
-        if not os.path.isfile(bed_file):
-            raise FileNotFoundError(f"BED file not found: {bed_file}")
-        
-        if not os.path.isfile(clip_bam_file):
-            raise FileNotFoundError(f"BAM file not found: {clip_bam_file}")
-        
-        # Build the command
-        command = ["samtools", "ampliconstats", "-o", output_file, bed_file, clip_bam_file]
-        
-        # Run the command
-        result = subprocess.run(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-        
-        print(f"Command completed successfully. Output saved to: {output_file}")
-        return True
-        
-    except FileNotFoundError as e:
-        print(f"Error: {str(e)}")
-        return False
-    except subprocess.CalledProcessError as e:
-        print(f"Command failed with return code {e.returncode}")
-        print(f"Error output: {e.stderr}")
-        return False
-    except Exception as e:
-        print(f"An unexpected error occurred: {str(e)}")
-        return False
-
-
-def samcov(sortbam: str, outf: str):
-
-    covf = open(outf, 'a')
-    return subprocess.Popen(['samtools', 'coverage', sortbam],
-                            stdout=covf, 
-                            stderr=STDOUT
-                            )
 
 def amptable(ampstats: str, sampid: str) -> pd.DataFrame:
 
