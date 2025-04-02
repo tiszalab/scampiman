@@ -93,3 +93,9 @@ $ conda activate scampiman
 
 $ conda install -c conda-forge conda-forge::r-rprojroot conda-forge::r-tidyverse conda-forge::r-cowplot conda-forge::r-readxl
 ```
+
+### To-Do
+
+1. Add a flag/setting for discarding supplemental alignments.
+2. Add a flag/setting for using `dorado trim` before alignment.
+3. Make a CLI for plotting with additional settings for fig size etc
