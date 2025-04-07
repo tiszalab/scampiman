@@ -165,8 +165,7 @@ def scampiman():
                     scaf.pysam_cat(
                         READ_STR,
                         args.intype,
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'),
-                        def_CPUs
+                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
                     )
 
                     scaf.dorado_al(
@@ -189,8 +188,7 @@ def scampiman():
                     scaf.pysam_cat(
                         READ_STR,
                         args.intype,
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'),
-                        def_CPUs
+                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
                     )
                 except Exception as e:
                     logger.error("samtools cat not successful:")
