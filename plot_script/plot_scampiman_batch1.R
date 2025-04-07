@@ -14,8 +14,9 @@ args = commandArgs(trailingOnly=TRUE)
 
 suppressMessages(library(data.table))
 suppressMessages(library(dplyr))
-suppressMessages(library(rprojroot))
+#suppressMessages(library(rprojroot))
 suppressMessages(library(ggplot2))
+#suppressMessages(library(tidyr))
 suppressMessages(library(cowplot))
 suppressMessages(library(readxl))
 
@@ -112,7 +113,11 @@ if (length(index_files) > 0) {
     index_dt,
     by = c("sample_ID", "project_ID")
   ) %>%
-    mutate(`Sample ID` = replace_na(`Sample ID`, sample_ID)) %>%
+    mutate(`Sample ID` = case_when(
+      is.na(`Sample ID`) ~ sample_ID,
+      TRUE ~ `Sample ID`
+      )
+    ) %>%
     rename(sampid = `Sample ID`)
 } else {
 
