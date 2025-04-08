@@ -34,18 +34,23 @@ def pysam_cat(reads: str, ftype: str, outf: str):
         *bam_list
     )
 
-def dorado_al(bam: str, cpus: int, outf: str, ref: str):
+def dorado_al(bam: str, cpus: int, outf: str, ref: str, supp: bool):
 
     sortbam = open(outf, 'a')
 
+    if supp:
+        view_flag = "4"
+    else:
+        view_flag = "2052"
 
     dorado_command = ['dorado', 'aligner', '-t', str(cpus), ref, bam]
 
     # Second command-line
-    view_command = ['samtools', 'view', '-F', '4', '-Sb']
+    view_command = ['samtools', 'view', '-F', view_flag, '-Sb']
+    logger.info(view_command)
     
     # Third command-line
-    sort_command = ['samtools', 'sort', '-o', outf]
+    sort_command = ['samtools', 'sort', '-@', str(cpus), '-o', outf]
 
     # Launch first process
     dorado_process = subprocess.Popen(
@@ -75,10 +80,15 @@ def dorado_al(bam: str, cpus: int, outf: str, ref: str):
         return None
 
 
-def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str):
+def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str, supp: bool):
     print("mini2_al")
     print(fq)
     sortbam = open(outf, 'a')
+
+    if supp:
+        view_flag = "4"
+    else:
+        view_flag = "2052"
 
     if tech == "ont":
         targ = "lr:hq"
@@ -92,10 +102,10 @@ def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str):
     mini_command = ['minimap2', '-ax', targ, '-t', str(cpus), ref, *fq_list]
 
     # Second command-line
-    view_command = ['samtools', 'view', '-F', '4', '-Sb']
+    view_command = ['samtools', 'view', '-F', view_flag, '-Sb']
     
     # Third command-line
-    sort_command = ['samtools', 'sort', '-o', outf]
+    sort_command = ['samtools', 'sort', '-@', str(cpus), '-o', outf]
 
     # Launch first process
     mini_process = subprocess.Popen(

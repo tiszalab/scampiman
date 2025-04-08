@@ -89,7 +89,11 @@ def scampiman():
                         help=f"Default: {def_workdir} -- \
                         Set working directory with absolute or relative path. \
                         Run directory will be created within.")
-    # you need to run this line to parse the arguments
+    parser.add_argument("--supps", 
+                        dest="SUPPS", type=scaf.str2bool, default='True',
+                        help='True of False. Allow supplemental alignments in final output?. \
+                        Some supplemental alignments may ligated amplicons from other barcodes.')
+    
     args = parser.parse_args()
 
 
@@ -172,7 +176,8 @@ def scampiman():
                         os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
                         def_CPUs, 
                         os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                        str(args.genome)
+                        str(args.genome),
+                        args.SUPPS
                     )
 
                 else:
@@ -180,7 +185,8 @@ def scampiman():
                         READ_STR, 
                         def_CPUs, 
                         os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
-                        str(args.genome)
+                        str(args.genome),
+                        args.SUPPS
                     )
             if str(args.intype) == "directory":
                 logger.info(f'> directory option ')
@@ -198,7 +204,8 @@ def scampiman():
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
                     def_CPUs, 
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                    str(args.genome)
+                    str(args.genome),
+                    args.SUPPS
                 )
 
         if str(args.rfmt) == "fastq":
@@ -208,7 +215,8 @@ def scampiman():
                 def_CPUs,
                 os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
                 str(args.genome),
-                args.SEQTECH
+                args.SEQTECH,
+                args.SUPPS
             )
     except Exception as e:
         logger.error("Read Alignment ERROR: ")
@@ -225,19 +233,10 @@ def scampiman():
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
             logger.info(f'ampclip')
-            '''
-            pysam.ampliconclip(
-                "-b", str(args.bed),
-                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                save_stdout = os.path.join(
-                    sca_temp, 
-                    f'{str(args.SAMPLE)}.ampclip.bam'
-                    ),
-                catch_stdout = False
 
-            )
-            '''
             pysam.samtools.ampliconclip(
+                '--both-ends',
+                '-@', str(def_CPUs),
                 '-b', args.bed,
                 '-o', 
                 os.path.join(
@@ -249,6 +248,7 @@ def scampiman():
 
 
             pysam.samtools.ampliconstats(
+                '-@', str(def_CPUs),
                 '-o', 
                 os.path.join(
                     args.OUTPUT_DIR,
