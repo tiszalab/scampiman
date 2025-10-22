@@ -1,5 +1,5 @@
 # scampiman
-A pipeline to align and summarize tiled amplicon coverage (of a virus, probably) from raw sequences
+A pipeline to align and summarize tiled amplicon coverage (of a virus, probably) from raw sequences.
 
 **Requires: Reads, Reference Genome(s), Primer `.bed` File**
 
