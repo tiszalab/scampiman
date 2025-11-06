@@ -232,7 +232,18 @@ def scampiman():
 
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
+
+            logger.info(f'samcov')
+            pysam.samtools.coverage(
+                '-o', os.path.join(
+                    args.OUTPUT_DIR, 
+                    f'{str(args.SAMPLE)}.samcov.tsv'
+                    ),
+                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam') 
+            )
+
             logger.info(f'ampclip')
+            logger.info(f'longest amplicon length: {scaf.ampliconstats_length(args.bed)-51}')
 
             pysam.samtools.ampliconclip(
                 '--both-ends',
@@ -249,6 +260,7 @@ def scampiman():
 
             pysam.samtools.ampliconstats(
                 '-@', str(def_CPUs),
+                '-l', str(scaf.ampliconstats_length(args.bed)),
                 '-o', 
                 os.path.join(
                     args.OUTPUT_DIR,
@@ -263,14 +275,6 @@ def scampiman():
             logger.info(f"temp dir: {sca_temp}")
             logger.info(os.listdir(sca_temp))
 
-            logger.info(f'samcov')
-            pysam.samtools.coverage(
-                '-o', os.path.join(
-                    args.OUTPUT_DIR, 
-                    f'{str(args.SAMPLE)}.samcov.tsv'
-                    ),
-                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam') 
-            )
 
             logger.info(f'amptable')
             odf = scaf.amptable(
