@@ -218,3 +218,38 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+def ampliconstats_length(bed: str) -> int:
+    amplicons = {}
+    with open(bed, 'r') as bf:
+        for line in bf:
+            stripped = line.strip()
+            columns = stripped.split('\t')
+            primer_name = columns[3]
+            if '_LEFT' in primer_name.upper():
+                amplicon_id = primer_name.rsplit('_LEFT', maxsplit=1)[0]
+                left_start = int(columns[1])
+                amplicons.setdefault(amplicon_id, {})['left_start'] = left_start
+            elif '_RIGHT' in primer_name.upper():
+                amplicon_id = primer_name.rsplit('_RIGHT', maxsplit=1)[0]
+                right_end = int(columns[2])
+                amplicons.setdefault(amplicon_id, {})['right_end'] = right_end
+            else:
+                raise ValueError("primer not left or right")
+    longest = None
+    max_length = -1
+    for amp_id, coords in amplicons.items():
+        if 'left_start' not in coords or 'right_end' not in coords:
+            continue
+        length = coords['right_end'] - coords['left_start']
+        if length > max_length:
+            max_length = length
+            longest = {
+                'amplicon_number': amp_id,
+                'left_start': coords['left_start'],
+                'right_end': coords['right_end'],
+                'length': length
+            }
+    if longest is None:
+        raise ValueError('No complete amplicon pairs found in BED file')
+    max_length += 50
+    return max_length
