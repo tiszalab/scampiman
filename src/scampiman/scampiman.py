@@ -89,10 +89,6 @@ def scampiman():
                         help=f"Default: {def_workdir} -- \
                         Set working directory with absolute or relative path. \
                         Run directory will be created within.")
-    parser.add_argument("--supps", 
-                        dest="SUPPS", type=scaf.str2bool, default='True',
-                        help='True of False. Allow supplemental alignments in final output?. \
-                        Some supplemental alignments may ligated amplicons from other barcodes.')
     
     args = parser.parse_args()
 
@@ -176,8 +172,7 @@ def scampiman():
                         os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
                         def_CPUs, 
                         os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                        str(args.genome),
-                        args.SUPPS
+                        str(args.genome)
                     )
 
                 else:
@@ -185,8 +180,7 @@ def scampiman():
                         READ_STR, 
                         def_CPUs, 
                         os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
-                        str(args.genome),
-                        args.SUPPS
+                        str(args.genome)
                     )
             if str(args.intype) == "directory":
                 logger.info(f'> directory option ')
@@ -204,8 +198,7 @@ def scampiman():
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
                     def_CPUs, 
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                    str(args.genome),
-                    args.SUPPS
+                    str(args.genome)
                 )
 
         if str(args.rfmt) == "fastq":
@@ -215,8 +208,7 @@ def scampiman():
                 def_CPUs,
                 os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
                 str(args.genome),
-                args.SEQTECH,
-                args.SUPPS
+                args.SEQTECH
             )
     except Exception as e:
         logger.error("Read Alignment ERROR: ")
