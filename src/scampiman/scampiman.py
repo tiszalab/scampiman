@@ -225,6 +225,24 @@ def scampiman():
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
 
+            logger.info(f'flagstat')
+            flagstat_df = scaf.mapping_stats(
+                pysam.samtools.flagstat(
+                    '-O', 'tsv',
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam') 
+                ),
+                args.SAMPLE
+            )
+            
+            flagstat_df.to_csv(
+                os.path.join(
+                    args.OUTPUT_DIR,
+                    f'{str(args.SAMPLE)}.alignstats.tsv'
+                ),
+                sep = "\t",
+                index=False
+            )
+
             logger.info(f'samcov')
             pysam.samtools.coverage(
                 '-o', os.path.join(

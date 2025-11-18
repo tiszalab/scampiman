@@ -243,3 +243,26 @@ def ampliconstats_length(bed: str) -> int:
         raise ValueError('No complete amplicon pairs found in BED file')
     max_length += 50
     return max_length
+
+
+def mapping_stats(flagstats: str, sampid: str) -> pd.DataFrame:
+
+    flag_stats = {}
+    flag_df = flagstats.strip()
+    stat_lines = flag_df.split('\n')
+
+    for line in stat_lines:
+        values = line.split('\t')[0]
+        stat = line.split('\t')[2]
+        flag_stats[stat] = values
+    
+    mapping_stats = {}
+    mapping_stats['sample_ID'] = sampid
+    mapping_stats['total_reads'] = flag_stats['primary']
+    mapping_stats['unmapped'] = int(flag_stats['primary']) - int(flag_stats['primary mapped'])
+    mapping_stats['primary_mapped'] = flag_stats['primary mapped']
+    mapping_stats['secondary_mapped'] = flag_stats['secondary']
+    mapping_stats['supplementary_mapped'] = flag_stats['supplementary']
+
+    mapping_dt = pd.DataFrame(mapping_stats, index=[0])
+    return mapping_dt
