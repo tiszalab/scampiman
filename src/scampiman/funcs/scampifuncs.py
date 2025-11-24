@@ -245,24 +245,20 @@ def ampliconstats_length(bed: str) -> int:
     return max_length
 
 
-def mapping_stats(flagstats: str, sampid: str) -> pd.DataFrame:
+def flag_stats(bam: str, outf: str):
 
-    flag_stats = {}
-    flag_df = flagstats.strip()
-    stat_lines = flag_df.split('\n')
+    flagstats = open(outf, 'a')
+    flagstats_command = ['samtools', 'flagstats', '-O', 'tsv', bam]
+    logger.info(flagstats_command)
 
-    for line in stat_lines:
-        values = line.split('\t')[0]
-        stat = line.split('\t')[2]
-        flag_stats[stat] = values
-    
-    mapping_stats = {}
-    mapping_stats['sample_ID'] = sampid
-    mapping_stats['total_reads'] = flag_stats['primary']
-    mapping_stats['unmapped'] = int(flag_stats['primary']) - int(flag_stats['primary mapped'])
-    mapping_stats['primary_mapped'] = flag_stats['primary mapped']
-    mapping_stats['secondary_mapped'] = flag_stats['secondary']
-    mapping_stats['supplementary_mapped'] = flag_stats['supplementary']
+    # Use subprocess to capture the STDOUT
+    flagstats_process = subprocess.Popen(
+        flagstats_command, 
+        stdout=flagstats
+    )
 
-    mapping_dt = pd.DataFrame(mapping_stats, index=[0])
-    return mapping_dt
+    output, _ = flagstats_process.communicate()
+    if output:
+        return output
+    else:
+        return None
