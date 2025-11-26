@@ -13,12 +13,13 @@ def pysam_cat(reads: str, ftype: str, outf: str):
 
     if ftype == "directory":
         bam_list = []
-        for bam in os.listdir(reads):
-            if bam.endswith('.bam'):
-                f = os.path.join(reads, bam)
+        for directory in reads.split():
+            for bam in os.listdir(directory):
+                if bam.endswith('.bam'):
+                    f = os.path.join(directory, bam)
 
-                if os.path.isfile(f) and os.path.getsize(f) > 0:
-                    bam_list.append(f)
+                    if os.path.isfile(f) and os.path.getsize(f) > 0:
+                        bam_list.append(f)
 
     elif ftype == "files":
         bam_list = []
