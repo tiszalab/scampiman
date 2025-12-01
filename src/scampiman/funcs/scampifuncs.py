@@ -13,12 +13,13 @@ def pysam_cat(reads: str, ftype: str, outf: str):
 
     if ftype == "directory":
         bam_list = []
-        for bam in os.listdir(reads):
-            if bam.endswith('.bam'):
-                f = os.path.join(reads, bam)
+        for directory in reads.split():
+            for bam in os.listdir(directory):
+                if bam.endswith('.bam'):
+                    f = os.path.join(directory, bam)
 
-                if os.path.isfile(f) and os.path.getsize(f) > 0:
-                    bam_list.append(f)
+                    if os.path.isfile(f) and os.path.getsize(f) > 0:
+                        bam_list.append(f)
 
     elif ftype == "files":
         bam_list = []
@@ -34,19 +35,14 @@ def pysam_cat(reads: str, ftype: str, outf: str):
         *bam_list
     )
 
-def dorado_al(bam: str, cpus: int, outf: str, ref: str, supp: bool):
+def dorado_al(bam: str, cpus: int, outf: str, ref: str):
 
     sortbam = open(outf, 'a')
-
-    if supp:
-        view_flag = "4"
-    else:
-        view_flag = "2052"
 
     dorado_command = ['dorado', 'aligner', '-t', str(cpus), ref, bam]
 
     # Second command-line
-    view_command = ['samtools', 'view', '-F', view_flag, '-Sb']
+    view_command = ['samtools', 'view', '-Sb']
     logger.info(view_command)
     
     # Third command-line
@@ -80,15 +76,10 @@ def dorado_al(bam: str, cpus: int, outf: str, ref: str, supp: bool):
         return None
 
 
-def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str, supp: bool):
+def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str):
     print("mini2_al")
     print(fq)
     sortbam = open(outf, 'a')
-
-    if supp:
-        view_flag = "4"
-    else:
-        view_flag = "2052"
 
     if tech == "ont":
         targ = "lr:hq"
@@ -102,7 +93,7 @@ def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str, supp: bool):
     mini_command = ['minimap2', '-ax', targ, '-t', str(cpus), ref, *fq_list]
 
     # Second command-line
-    view_command = ['samtools', 'view', '-F', view_flag, '-Sb']
+    view_command = ['samtools', 'view', '-Sb']
     
     # Third command-line
     sort_command = ['samtools', 'sort', '-@', str(cpus), '-o', outf]
@@ -253,3 +244,22 @@ def ampliconstats_length(bed: str) -> int:
         raise ValueError('No complete amplicon pairs found in BED file')
     max_length += 50
     return max_length
+
+
+def flag_stats(bam: str, outf: str):
+
+    flagstats = open(outf, 'a')
+    flagstats_command = ['samtools', 'flagstats', '-O', 'tsv', bam]
+    logger.info(flagstats_command)
+
+    # Use subprocess to capture the STDOUT
+    flagstats_process = subprocess.Popen(
+        flagstats_command, 
+        stdout=flagstats
+    )
+
+    output, _ = flagstats_process.communicate()
+    if output:
+        return output
+    else:
+        return None
