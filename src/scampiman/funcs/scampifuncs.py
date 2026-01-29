@@ -76,6 +76,192 @@ def dorado_al(bam: str, cpus: int, outf: str, ref: str):
         return None
 
 
+
+
+def mappy_al_ref(ref: str, tech: str, cpus:int):
+    if tech == "ont":
+        targ = "lr:hq"
+    elif tech == "illumina":
+        targ = "sr"
+
+    aligner = mp.Aligner(ref,
+        preset=targ, n_threads = cpus)
+    
+    return aligner
+
+
+def mappy_al_header(rfmt: str, rfile: str, ref: str):
+    if rfmt == "bam":
+        sq_head = pysam.AlignmentFile(rfile, 'rb', check_sq=False).header.to_dict() | \
+            pysam.AlignmentHeader(
+            ).from_references(
+                reference_names=pysam.FastaFile(ref).references, 
+                reference_lengths=pysam.FastaFile(ref).lengths
+                ).to_dict()        
+    
+    elif rfmt == "fastq": 
+        sq_head = pysam.AlignmentHeader(
+            ).from_references(
+                reference_names=pysam.FastaFile(ref).references, 
+                reference_lengths=pysam.FastaFile(ref).lengths
+                ).to_dict()
+    
+    return sq_head
+
+
+
+def mappy_hits_tags(hits: list, len_seq: int):
+    sa_tags = []
+    tags = []
+    for hit in hits:
+        cigar_props = list(set(map(lambda x:x[1], hit.cigar)))
+        cig_dict = dict(zip(cigar_props, [0]*len(cigar_props)))
+        de_denom = 0
+
+        for i in hit.cigar:
+            cig_dict[i[1]] += i[0]
+            if i[1] == 0:
+                de_denom += i[0]
+            else:
+                de_denom += 1
+
+        de = 1-(hit.mlen/de_denom)
+        rounded_de = round(de, str(round(de,6)).split('.')[1].count('0') + 6)
+
+
+        if hit.strand == 1: 
+            strand_char = '+'
+        elif hit.strand == -1:
+            strand_char = '-'
+
+        sa_tags.append(f"{hit.ctg},{hit.r_st},{strand_char},{str(hit.q_st) + 'S' + str(cig_dict.get(0)) + 'M' + str(cig_dict.get(2)) + 'D' + str(len_seq - hit.q_en) +'S'},{hit.mapq},{hit.NM}")
+        tags.append(("NM", hit.NM), ("nn", (hit.blen - hit.mlen - hit.NM), "i"),("de", rounded_de, "f"),("MD", hit.MD), ("cs", hit.cs)) 
+    
+####### Need to add the for_loop to the function to add on the SA tag to the tags list
+
+   
+
+
+def mappy_hits_bam_fmt(hits: list, ref: str, header: dict):
+    sq_head = pysam.AlignmentHeader.from_dict(header)
+    recs_list = []
+
+
+    for hit in hits:
+        rec = pysam.AlignedSegment(header=sq_head)
+        rec.is_mapped = True
+        rec.query_name = i.query_name
+        rec.reference_name = hit.ctg 
+        rec.reference_start = hit.r_st 
+        rec.mapping_quality = hit.mapq 
+        rec.tags =  i.get_tags() + \
+        [("NM", hit.NM), 
+        ("nn", (hit.blen - hit.mlen - hit.NM), "i"),
+        ("MD", hit.MD), ("cs", hit.cs)] 
+        
+        
+        if str(hit) == str(hits[0]):
+            if hit.strand == 1: 
+                rec.is_forward = True
+                rec.query_sequence = i.query_sequence
+                rec.query_qualities = i.query_qualities
+                rec.cigarstring = str(hit.q_st) + 'S' + hit.cigar_str + str(len(i.query_sequence)-hit.q_en) + 'S'
+
+
+            if hit.strand == -1: 
+                rec.is_reverse = True
+                rec.query_sequence = mp.revcomp(i.query_sequence)
+                rec.query_qualities = i.query_qualities[::-1]
+                rec.cigarstring =  str(len(i.query_sequence)-hit.q_en) +'S' + hit.cigar_str + str(hit.q_st) + 'S'
+
+            recs_list.append(rec)
+
+
+        else:
+            prime_qrange = list(range(hits[0].q_st,hits[0].q_en))
+            hit_qrange = list(range(hit.q_st, hit.q_en))
+            common_bases = set(prime_qrange) & set(hit_qrange)
+            qlen_olap_ratio = len(common_bases)/len(hit_qrange)
+
+
+            if qlen_olap_ratio < 0.5: 
+                rec.is_supplementary = True
+
+            else:
+                rec.is_secondary = True
+
+
+            if hit.strand == 1: 
+                rec.is_forward = True
+                rec.query_sequence = i.query_sequence[hit.q_st:hit.q_en]
+                rec.query_qualities = i.query_qualities[hit.q_st:hit.q_en]
+                rec.cigarstring = str(hit.q_st) + 'H' + hit.cigar_str + str(len(i.query_sequence)-hit.q_en) + 'H'
+
+            if hit.strand == -1: 
+                rec.is_reverse = True
+                rec.query_sequence = mp.revcomp(i.query_sequence[hit.q_st:hit.q_en])
+                rec.query_qualities = i.query_qualities[hit.q_st:hit.q_en][::-1]
+                rec.cigarstring =  str(len(i.query_sequence)-hit.q_en) +'H' + hit.cigar_str + str(hit.q_st) + 'H'
+
+
+            ref_olap = recs_list[0].get_overlap(hit.r_st, hit.r_en) 
+            hit_refRange = hit.r_en - hit.r_st
+            rlen_olap_ratio = ref_olap/hit_refRange
+
+            if rlen_olap_ratio < 0.5:
+                rec.is_qcfail = True
+                rec_list[0].is_qcfail = True
+            elif rec.is_supplementary and hits[0].strand == hit.strand:
+                rec.is_qcfail = True
+                rec_list[0].is_qcfail = True
+
+            recs_list.append(rec)
+
+### Need to add the tags list to the recs_lists
+
+    return recs_list
+
+    
+
+def bam_mappy_al(bam: str, cpus: int, tech: str, ref: str,  outf: str):
+
+    aligner = mappy_al_ref(ref, tech, cpus)
+    sq_head = mappy_al_header("bam", bam, ref)
+
+
+    sq_head['PG'].append({'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment'})
+
+    with pysam.AlignmentFile(outf, 'wb', header=sq_head) as obam:  
+
+        for i in pysam.AlignmentFile(bam, 'rb', check_sq=False):
+            hits = list(aligner.map(i.query_sequence, cs=True, MD=True))
+            #keep_read = True
+            recs_list = []
+            sa_tags = []
+
+            
+            if not hits:
+                obam.write(i)
+                continue
+            
+           
+            if keep_read:
+                for read_alignment in recs_list:
+                    read_sa_tag = sa_tags.copy()
+                    read_sa_tag.pop(recs_list.index(read_alignment))
+
+                    if not read_sa_tag:
+                        obam.write(read_alignment)
+                        continue
+                    
+                    read_alignment.tags =  read_alignment.get_tags() + [("SA", ';'.join(read_sa_tag))]
+                    obam.write(read_alignment)
+
+    pysam.sort("-o", outf, outf)
+
+
+
+
 def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str):
     print("mini2_al")
     print(fq)
