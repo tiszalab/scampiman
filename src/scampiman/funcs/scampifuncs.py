@@ -76,8 +76,6 @@ def dorado_al(bam: str, cpus: int, outf: str, ref: str):
         return None
 
 
-
-
 def mappy_al_ref(ref: str, tech: str, cpus:int):
     if tech == "ont":
         targ = "lr:hq"
@@ -90,62 +88,11 @@ def mappy_al_ref(ref: str, tech: str, cpus:int):
     return aligner
 
 
-def mappy_al_header(rfmt: str, rfile: str, ref: str):
-    if rfmt == "bam":
-        sq_head = pysam.AlignmentFile(rfile, 'rb', check_sq=False).header.to_dict() | \
-            pysam.AlignmentHeader(
-            ).from_references(
-                reference_names=pysam.FastaFile(ref).references, 
-                reference_lengths=pysam.FastaFile(ref).lengths
-                ).to_dict()        
-    
-    elif rfmt == "fastq": 
-        sq_head = pysam.AlignmentHeader(
-            ).from_references(
-                reference_names=pysam.FastaFile(ref).references, 
-                reference_lengths=pysam.FastaFile(ref).lengths
-                ).to_dict()
-    
-    return sq_head
-
-
-
-def mappy_hits_tags(hits: list, len_seq: int):
-    sa_tags = []
-    tags = []
-
-
-    for hit in hits:  
-        cigar_props = list(set(map(lambda x:x[1], hit.cigar)))
-        cig_dict = dict(zip(cigar_props, [0]*len(cigar_props)))
-        de_denom = 0
-
-        for i in hit.cigar:
-            cig_dict[i[1]] += i[0]
-            if i[1] == 0:
-                de_denom += i[0]
-            else:
-                de_denom += 1
-
-        de = 1-(hit.mlen/de_denom)
-        rounded_de = round(de, str(round(de,6)).split('.')[1].count('0') + 6)
-
-        if hit.strand == 1: 
-            strand_char = '+'
-        elif hit.strand == -1:
-            strand_char = '-'
-
-        sa_tags.append(f"{hit.ctg},{hit.r_st},{strand_char},{str(hit.q_st) + 'S' + str(cig_dict.get(0)) + 'M' + str(cig_dict.get(2)) + 'D' + str(len_seq - hit.q_en) +'S'},{hit.mapq},{hit.NM}")
-        tags.append([("NM", hit.NM), ("nn", (hit.blen - hit.mlen - hit.NM), "i"),("de", rounded_de, "f"),("MD", hit.MD), ("cs", hit.cs)])
-
-    return tags, sa_tags
-
-   
-
-
 def mappy_hits_bam_fmt(q: pysam.libcalignedsegment.AlignedSegment, hits: list, header_dict: dict):
     sq_head = pysam.AlignmentHeader.from_dict(header_dict)
     recs_list = []
+    sa_tags = []
+    tags = []
 
     for hit in hits:
         rec = pysam.AlignedSegment(header=sq_head)
@@ -155,56 +102,42 @@ def mappy_hits_bam_fmt(q: pysam.libcalignedsegment.AlignedSegment, hits: list, h
         rec.reference_start = hit.r_st 
         rec.mapping_quality = hit.mapq 
         
-
-
         if str(hit) == str(hits[0]):
             if hit.strand == 1: 
                 rec.is_forward = True
                 rec.query_sequence = q.query_sequence
                 rec.query_qualities = q.query_qualities
                 rec.cigarstring = str(hit.q_st) + 'S' + hit.cigar_str + str(len(q.query_sequence)-hit.q_en) + 'S'
-
-
             if hit.strand == -1: 
                 rec.is_reverse = True
                 rec.query_sequence = mp.revcomp(q.query_sequence)
                 rec.query_qualities = q.query_qualities[::-1]
                 rec.cigarstring =  str(len(q.query_sequence)-hit.q_en) +'S' + hit.cigar_str + str(hit.q_st) + 'S'
-
             recs_list.append(rec)
-
-
         else:
             prime_qrange = list(range(hits[0].q_st,hits[0].q_en))
             hit_qrange = list(range(hit.q_st, hit.q_en))
             common_bases = set(prime_qrange) & set(hit_qrange)
             qlen_olap_ratio = len(common_bases)/len(hit_qrange)
-
-
             if qlen_olap_ratio < 0.5: 
                 rec.is_supplementary = True
-
             else:
                 rec.is_secondary = True
-
 
             if hit.strand == 1: 
                 rec.is_forward = True
                 rec.query_sequence = q.query_sequence[hit.q_st:hit.q_en]
                 rec.query_qualities = q.query_qualities[hit.q_st:hit.q_en]
                 rec.cigarstring = str(hit.q_st) + 'H' + hit.cigar_str + str(len(q.query_sequence)-hit.q_en) + 'H'
-
             if hit.strand == -1: 
                 rec.is_reverse = True
                 rec.query_sequence = mp.revcomp(q.query_sequence[hit.q_st:hit.q_en])
                 rec.query_qualities = q.query_qualities[hit.q_st:hit.q_en][::-1]
                 rec.cigarstring =  str(len(q.query_sequence)-hit.q_en) +'H' + hit.cigar_str + str(hit.q_st) + 'H'
 
-
             ref_olap = recs_list[0].get_overlap(hit.r_st, hit.r_en) 
             hit_refRange = hit.r_en - hit.r_st
             rlen_olap_ratio = ref_olap/hit_refRange
-
             if rlen_olap_ratio < 0.5:
                 rec.is_qcfail = True
                 recs_list[0].is_qcfail = True
@@ -213,40 +146,156 @@ def mappy_hits_bam_fmt(q: pysam.libcalignedsegment.AlignedSegment, hits: list, h
                 recs_list[0].is_qcfail = True
 
             recs_list.append(rec)
+        ## creating tags
+        cigar_props = list(set(map(lambda x:x[1], hit.cigar)))
+        cig_dict = dict(zip(cigar_props, [0]*len(cigar_props)))
+        de_denom = 0
+        for i in hit.cigar:
+            cig_dict[i[1]] += i[0]
+            if i[1] == 0:
+                de_denom += i[0]
+            else:
+                de_denom += 1
+        de = 1-(hit.mlen/de_denom)
+        rounded_de = round(de, str(round(de,6)).split('.')[1].count('0') + 6)
 
+        if not hit.is_primary:
+            tp = 'S'
+        else:
+            tp = 'P'
+
+        if hit.strand == 1: 
+            strand_char = '+'
+        elif hit.strand == -1:
+            strand_char = '-'
+
+        sa_tags.append(f"{hit.ctg},{hit.r_st},{strand_char},{str(hit.q_st) + 'S' + str(cig_dict.get(0)) + 'M' + str(cig_dict.get(2)) + 'D' + str(len(q.query_sequence) - hit.q_en) +'S'},{hit.mapq},{hit.NM}")
+        tags.append([("NM", hit.NM), ("nn", (hit.blen - hit.mlen - hit.NM), "i"),("tp", tp, "A"),("de", rounded_de, "f"),("MD", hit.MD), ("cs", hit.cs)])
     
-    return recs_list
+    return recs_list, tags, sa_tags
 
 
-    
+def mappy_hits_fastq_fmt(q: dict, hits: list, header_dict: dict):
+    sq_head = pysam.AlignmentHeader.from_dict(header_dict)
+    rec_list = []
+    hit_r1 = []
+    hit_r2 = []
+    for hit in hits:
+        rec = pysam.AlignedSegment(header=sq_head)
+        rec.is_mapped = True
+        rec.query_name = q['query_name']
+        rec.reference_name = hit.ctg 
+        rec.reference_start = hit.r_st 
+        rec.mapping_quality = hit.mapq
+        rec.is_paired = True
+        if not hit.is_primary:
+            rec.is_secondary = True
+            tp = 'S'
+        else:
+            tp = 'P'
+        
+        if hit.read_num == 1:
+            rec.is_read1 = True
+            q_seq = q['seq1']
+            q_qual = q['quality1']
+            hit_r1.append(hit)
+        elif hit.read_num == 2:
+            rec.is_read2 = True
+            q_seq = q['seq2']
+            q_qual = q['quality2']
+            hit_r2.append(hit)
+
+        if hit.strand == 1:
+            rec.is_forward = True
+            rec.mate_is_reverse = True
+            rec.query_sequence = q_seq
+            rec.query_qualities = q_qual
+            cigar_start = str(hit.q_st)
+            cigar_end = str(len(q_qual)-hit.q_en)
+        elif hit.strand == -1: 
+            rec.is_reverse = True
+            rec.mate_is_forward = True
+            rec.query_sequence = mp.revcomp(q_seq)
+            rec.query_qualities = q_qual[::-1]
+            cigar_start = str(len(q_qual)-hit.q_en)
+            cigar_end = str(hit.q_st)
+        
+        if cigar_start != '0' and cigar_end != '0':
+            rec.cigarstring = cigar_start + 'S' + hit.cigar_str + cigar_end + 'S'
+        elif cigar_start != '0':
+            rec.cigarstring = cigar_start + 'S' + hit.cigar_str
+        elif cigar_end != '0':
+            rec.cigarstring = hit.cigar_str + cigar_end + 'S'
+        else:
+            rec.cigarstring = hit.cigar_str
+        ## creating tags
+        cigar_props = list(set(map(lambda x:x[1], hit.cigar)))
+        cig_dict = dict(zip(cigar_props, [0]*len(cigar_props)))
+        de_denom = 0
+        for d in hit.cigar:
+            cig_dict[d[1]] += d[0]
+            if d[1] == 0:
+                de_denom += d[0]
+            else:
+                de_denom += 1
+        de = 1-(hit.mlen/de_denom)
+        rounded_de = round(de, str(round(de,6)).split('.')[1].count('0') + 6)
+        rec.tags =  [("NM", hit.NM), ("nn", (hit.blen - hit.mlen - hit.NM), "i"),("tp", tp, "A"), ("de", rounded_de, "f"),("MD", hit.MD), ("cs", hit.cs)]
+        rec_list.append(rec)
+
+        for h1, h2 in zip(hit_r1, hit_r2):
+            rec_1 = rec_list[hits.index(h1)]
+            rec_2 = rec_list[hits.index(h2)]
+            rec_1.next_reference_name = rec_2.reference_name
+            rec_1.next_reference_id = rec_2.reference_id
+            rec_1.next_reference_start = rec_2.reference_start
+            rec_1.is_proper_pair = True
+            rec_2.next_reference_id = rec_1.reference_id
+            rec_2.next_reference_start = rec_1.reference_start
+            rec_2.next_reference_name = rec_1.reference_name
+            rec_2.is_proper_pair = True
+            
+            if not rec_1.is_reverse:
+                rec_2.template_length = h2.r_st - h1.r_st + h2.mlen
+                rec_1.template_length = rec_2.template_length * -1
+            else:
+                rec_1.template_length = h1.r_st - h2.r_st + h1.mlen
+                rec_2.template_length = rec_1.template_length * -1
+            # add them back in
+            rec_list[hits.index(h1)] = rec_1
+            rec_list[hits.index(h2)] = rec_2
+
+    return rec_list
+
 
 
 def bam_mappy_al(bam: str, cpus: int, tech: str, ref: str,  outf: str):
 
     print(f"Processing {bam}")
     aligner = mappy_al_ref(ref, tech, cpus)
-    sq_head = mappy_al_header("bam", bam, ref)
+    
+    sq_head = pysam.AlignmentFile(bam, 'rb', check_sq=False).header.to_dict() | \
+    pysam.AlignmentHeader(
+    ).from_references(
+        reference_names=pysam.FastaFile(ref).references, 
+        reference_lengths=pysam.FastaFile(ref).lengths
+        ).to_dict() 
     sq_head['PG'].append({'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment'})
 
     with pysam.AlignmentFile(outf, 'wb', header=sq_head) as obam:  
         for i in pysam.AlignmentFile(bam, 'rb', check_sq=False):
             hits = list(aligner.map(i.query_sequence, cs=True, MD=True))
 
-
             if not hits:
                 i.is_unmapped = True
                 obam.write(i)
                 continue
-            
 
-            tags, sa_tags = mappy_hits_tags(hits, len(i.query_sequence))
-            recs_list = mappy_hits_bam_fmt(i, hits, sq_head)
-            
+            recs_list, tags, sa_tags = mappy_hits_bam_fmt(i, hits, sq_head)
                 
             for read_alignment in recs_list:
                 read_sa_tag = sa_tags.copy()
                 read_sa_tag.pop(recs_list.index(read_alignment))
-
                 if not read_sa_tag:
                     read_alignment.tags =  i.get_tags() + tags[recs_list.index(read_alignment)]
                     obam.write(read_alignment)
@@ -255,8 +304,37 @@ def bam_mappy_al(bam: str, cpus: int, tech: str, ref: str,  outf: str):
                 read_alignment.tags =  i.get_tags() + tags[recs_list.index(read_alignment)] + [("SA", ';'.join(read_sa_tag))]
                 obam.write(read_alignment)
 
-    #pysam.sort("-o", outf, outf)
 
+def fastq_mappy_al(fastq1: str, fastq2: str, cpus: int, tech: str, ref: str,  outf: str):
+    print(f"Processing {fastq1}, {fastq2}")
+    aligner = mappy_al_ref(ref, tech, cpus)
+    
+    sq_head = pysam.AlignmentHeader(
+            ).from_references(
+                reference_names=pysam.FastaFile(ref).references, 
+                reference_lengths=pysam.FastaFile(ref).lengths
+                ).to_dict()
+    sq_head['PG'] = [{'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment'}]
+
+    with pysam.AlignmentFile(outf, 'wb', header=sq_head) as obam:
+        with pysam.FastxFile(fastq1) as fq1, pysam.FastxFile(fastq2) as fq2:
+            for read1, read2 in zip(fq1, fq2):
+                hits = list(aligner.map(read1.sequence, seq2=read2.sequence, cs=True, MD=True))
+                read_name = list(set([read1.name.split("/")[0], read2.name.split("/")[0]]))[0]
+
+                if not hits:
+                    read1.is_read1 = True
+                    read2.is_read2 = True
+                    for i in [read1, read2]:
+                        i.is_unmapped = True
+                        i.is_paired = True
+                    obam.write(i)
+                    continue
+
+                rec_list = mappy_hits_fastq_fmt({"query_name": read_name, "seq1": read1.sequence, "seq2": read2.sequence, "quality1": read1.quality, "quality2": read2.quality}, hits, sq_head)
+
+                for rec in rec_list:
+                    obam.write(rec)
 
 
 
