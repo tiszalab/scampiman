@@ -88,7 +88,7 @@ def mappy_al_ref(ref: str, tech: str, cpus:int):
     return aligner
 
 
-def mappy_hits_bam_fmt(q: pysam.libcalignedsegment.AlignedSegment, hits: list, header_dict: dict):
+def mappy_hits_bam_fmt(q: dict, hits: list, header_dict: dict):
     sq_head = pysam.AlignmentHeader.from_dict(header_dict)
     recs_list = []
     sa_tags = []
@@ -97,7 +97,7 @@ def mappy_hits_bam_fmt(q: pysam.libcalignedsegment.AlignedSegment, hits: list, h
     for hit in hits:
         rec = pysam.AlignedSegment(header=sq_head)
         rec.is_mapped = True
-        rec.query_name = q.query_name
+        rec.query_name = q['query_name']
         rec.reference_name = hit.ctg 
         rec.reference_start = hit.r_st 
         rec.mapping_quality = hit.mapq 
@@ -105,14 +105,14 @@ def mappy_hits_bam_fmt(q: pysam.libcalignedsegment.AlignedSegment, hits: list, h
         if str(hit) == str(hits[0]):
             if hit.strand == 1: 
                 rec.is_forward = True
-                rec.query_sequence = q.query_sequence
-                rec.query_qualities = q.query_qualities
-                rec.cigarstring = str(hit.q_st) + 'S' + hit.cigar_str + str(len(q.query_sequence)-hit.q_en) + 'S'
+                rec.query_sequence = q['query_sequence']
+                rec.query_qualities = q['query_qualities']
+                rec.cigarstring = str(hit.q_st) + 'S' + hit.cigar_str + str(len(q['query_sequence'])-hit.q_en) + 'S'
             if hit.strand == -1: 
                 rec.is_reverse = True
-                rec.query_sequence = mp.revcomp(q.query_sequence)
-                rec.query_qualities = q.query_qualities[::-1]
-                rec.cigarstring =  str(len(q.query_sequence)-hit.q_en) +'S' + hit.cigar_str + str(hit.q_st) + 'S'
+                rec.query_sequence = mp.revcomp(q['query_sequence'])
+                rec.query_qualities = q['query_qualities'][::-1]
+                rec.cigarstring =  str(len(q['query_sequence'])-hit.q_en) +'S' + hit.cigar_str + str(hit.q_st) + 'S'
             recs_list.append(rec)
         else:
             prime_qrange = list(range(hits[0].q_st,hits[0].q_en))
@@ -126,18 +126,19 @@ def mappy_hits_bam_fmt(q: pysam.libcalignedsegment.AlignedSegment, hits: list, h
 
             if hit.strand == 1: 
                 rec.is_forward = True
-                rec.query_sequence = q.query_sequence[hit.q_st:hit.q_en]
-                rec.query_qualities = q.query_qualities[hit.q_st:hit.q_en]
-                rec.cigarstring = str(hit.q_st) + 'H' + hit.cigar_str + str(len(q.query_sequence)-hit.q_en) + 'H'
+                rec.query_sequence = q['query_sequence'][hit.q_st:hit.q_en]
+                rec.query_qualities = q['query_qualities'][hit.q_st:hit.q_en]
+                rec.cigarstring = str(hit.q_st) + 'H' + hit.cigar_str + str(len(q['query_sequence'])-hit.q_en) + 'H'
             if hit.strand == -1: 
                 rec.is_reverse = True
-                rec.query_sequence = mp.revcomp(q.query_sequence[hit.q_st:hit.q_en])
-                rec.query_qualities = q.query_qualities[hit.q_st:hit.q_en][::-1]
-                rec.cigarstring =  str(len(q.query_sequence)-hit.q_en) +'H' + hit.cigar_str + str(hit.q_st) + 'H'
+                rec.query_sequence = mp.revcomp(q['query_sequence'][hit.q_st:hit.q_en])
+                rec.query_qualities = q['query_qualities'][hit.q_st:hit.q_en][::-1]
+                rec.cigarstring =  str(len(q['query_sequence'])-hit.q_en) +'H' + hit.cigar_str + str(hit.q_st) + 'H'
 
             ref_olap = recs_list[0].get_overlap(hit.r_st, hit.r_en) 
             hit_refRange = hit.r_en - hit.r_st
             rlen_olap_ratio = ref_olap/hit_refRange
+            ## if the overlap is less than 50% of the hit, it is a secondary alignment
             if rlen_olap_ratio < 0.5:
                 rec.is_qcfail = True
                 recs_list[0].is_qcfail = True
@@ -169,7 +170,7 @@ def mappy_hits_bam_fmt(q: pysam.libcalignedsegment.AlignedSegment, hits: list, h
         elif hit.strand == -1:
             strand_char = '-'
 
-        sa_tags.append(f"{hit.ctg},{hit.r_st},{strand_char},{str(hit.q_st) + 'S' + str(cig_dict.get(0)) + 'M' + str(cig_dict.get(2)) + 'D' + str(len(q.query_sequence) - hit.q_en) +'S'},{hit.mapq},{hit.NM}")
+        sa_tags.append(f"{hit.ctg},{hit.r_st},{strand_char},{str(hit.q_st) + 'S' + str(cig_dict.get(0)) + 'M' + str(cig_dict.get(2)) + 'D' + str(len(q['query_sequence']) - hit.q_en) +'S'},{hit.mapq},{hit.NM}")
         tags.append([("NM", hit.NM), ("nn", (hit.blen - hit.mlen - hit.NM), "i"),("tp", tp, "A"),("de", rounded_de, "f"),("MD", hit.MD), ("cs", hit.cs)])
     
     return recs_list, tags, sa_tags
@@ -291,7 +292,7 @@ def bam_mappy_al(bam: str, cpus: int, tech: str, ref: str,  outf: str):
                 obam.write(i)
                 continue
 
-            recs_list, tags, sa_tags = mappy_hits_bam_fmt(i, hits, sq_head)
+            recs_list, tags, sa_tags = mappy_hits_bam_fmt({"query_name": i.query_name, "query_sequence": i.query_sequence, "query_qualities": i.query_qualities}, hits, sq_head)
                 
             for read_alignment in recs_list:
                 read_sa_tag = sa_tags.copy()
