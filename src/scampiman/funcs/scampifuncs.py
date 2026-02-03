@@ -140,10 +140,10 @@ def mappy_hits_bam_fmt(q: dict, hits: list, header_dict: dict):
             rlen_olap_ratio = ref_olap/hit_refRange
             ## if the overlap is less than 50% of the hit, it is a secondary alignment
             if rlen_olap_ratio < 0.5:
-                rec.is_qcfail = True
+                #rec.is_qcfail = True
                 recs_list[0].is_qcfail = True
             elif rec.is_supplementary and hits[0].strand == hit.strand:
-                rec.is_qcfail = True
+                #rec.is_qcfail = True
                 recs_list[0].is_qcfail = True
 
             recs_list.append(rec)
@@ -306,6 +306,64 @@ def bam_mappy_al(bam: str, cpus: int, tech: str, ref: str,  outf: str):
                 obam.write(read_alignment)
 
 
+
+def test_bam_mappy_al(bam: str, cpus: int, tech: str, ref: str,  outf: str, foutf:str):
+
+    print(f"Processing {bam}")
+    aligner = mappy_al_ref(ref, tech, cpus)
+    sq_head = pysam.AlignmentFile(bam, 'rb', check_sq=False).header.to_dict() | \
+            pysam.AlignmentHeader(
+            ).from_references(
+                reference_names=pysam.FastaFile(ref).references, 
+                reference_lengths=pysam.FastaFile(ref).lengths
+                ).to_dict()
+    sq_head['PG'].append({'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment'})
+    obam = pysam.AlignmentFile(outf, 'wb', header=sq_head)
+    fbam = pysam.AlignmentFile(foutf, 'wb', header=sq_head)
+    flagstats = {'unmapped':0, 'total_reads_mapped':0, 'removed_reads':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0}
+    
+    for i in pysam.AlignmentFile(bam, 'rb', check_sq=False):
+        hits = list(aligner.map(i.query_sequence, cs=True, MD=True))
+        if not hits:
+            i.is_unmapped = True
+            flagstats['unmapped'] += 1
+            fbam.write(i)
+            continue
+        
+        flagstats['total_reads_mapped'] += 1
+        recs_list, tags, sa_tags = mappy_hits_bam_fmt({"query_name": i.query_name, "query_sequence": i.query_sequence, "query_qscore": i.query_qualities}, hits, sq_head)
+
+        if recs_list[0].is_qcfail:
+            flagstats['removed_reads'] += 1
+            for rec in recs_list:
+                fbam.write(rec)
+                continue        
+        
+        for read_alignment in recs_list:
+            if read_alignment.is_secondary:
+                flagstats['kept_secondary'] += 1
+            elif read_alignment.is_supplementary:
+                flagstats['kept_supplementary'] += 1
+            else:
+                flagstats['kept_primary'] += 1
+                
+            hit_index = recs_list.index(read_alignment)
+            read_sa_tag = sa_tags.copy()
+            read_sa_tag.pop(hit_index)
+            if not read_sa_tag:
+                read_alignment.tags =  i.get_tags() + tags[hit_index]
+                obam.write(read_alignment)
+                continue
+            
+            read_alignment.tags =  i.get_tags() + tags[hit_index] + [("SA", ';'.join(read_sa_tag))]
+            obam.write(read_alignment)
+    obam.close()
+    fbam.close() 
+
+    return flagstats
+
+
+   
 def fastq_mappy_al(fastq1: str, fastq2: str, cpus: int, tech: str, ref: str,  outf: str):
     print(f"Processing {fastq1}, {fastq2}")
     aligner = mappy_al_ref(ref, tech, cpus)
