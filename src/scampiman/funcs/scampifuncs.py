@@ -35,46 +35,6 @@ def pysam_cat(reads: str, ftype: str, outf: str):
         *bam_list
     )
 
-def dorado_al(bam: str, cpus: int, outf: str, ref: str):
-
-    sortbam = open(outf, 'a')
-
-    dorado_command = ['dorado', 'aligner', '-t', str(cpus), ref, bam]
-
-    # Second command-line
-    view_command = ['samtools', 'view', '-Sb']
-    logger.info(view_command)
-    
-    # Third command-line
-    sort_command = ['samtools', 'sort', '-@', str(cpus), '-o', outf]
-
-    # Launch first process
-    dorado_process = subprocess.Popen(
-        dorado_command,
-        stdout=subprocess.PIPE
-        )
-
-    # Launch second process and connect it to the first one
-    view_process = subprocess.Popen(
-        view_command, 
-        stdin=dorado_process.stdout, 
-        stdout=subprocess.PIPE
-    )
-
-    # Launch third process and connect it to the first one
-    sort_process = subprocess.Popen(
-        sort_command, 
-        stdin=view_process.stdout, 
-        stdout=sortbam
-    )
-
-    # Let stream flow between them
-    output, _ = sort_process.communicate()
-    if output:
-        return output
-    else:
-        return None
-
 
 def mappy_al_ref(ref: str, tech: str, cpus:int):
     if tech == "ont":
@@ -88,7 +48,25 @@ def mappy_al_ref(ref: str, tech: str, cpus:int):
     return aligner
 
 
-def mappy_hits_bam_fmt(q: dict, hits: list, header_dict: dict):
+def mappy_al_header(ref: str, rfmt:str, file:str):
+    if rfmt == "bam":
+        sq_head = pysam.AlignmentFile(file, 'rb', check_sq=False).header.to_dict() | \
+            pysam.AlignmentHeader(
+            ).from_references(
+                reference_names=pysam.FastaFile(ref).references, 
+                reference_lengths=pysam.FastaFile(ref).lengths
+                ).to_dict()
+    elif rfmt == "fastq":
+        sq_head = pysam.AlignmentHeader(
+            ).from_references(
+                reference_names=pysam.FastaFile(ref).references, 
+                reference_lengths=pysam.FastaFile(ref).lengths
+                ).to_dict()
+    return sq_head
+
+
+
+def mappy_hits_bam_fmt_single(q: dict, hits: list, header_dict: dict):
     sq_head = pysam.AlignmentHeader.from_dict(header_dict)
     recs_list = []
     sa_tags = []
@@ -107,12 +85,23 @@ def mappy_hits_bam_fmt(q: dict, hits: list, header_dict: dict):
                 rec.is_forward = True
                 rec.query_sequence = q['query_sequence']
                 rec.query_qualities = q['query_qualities']
-                rec.cigarstring = str(hit.q_st) + 'S' + hit.cigar_str + str(len(q['query_sequence'])-hit.q_en) + 'S'
-            if hit.strand == -1: 
+                cigar_start = str(hit.q_st)
+                cigar_end = str(len(q['query_sequence'])-hit.q_en)
+            elif hit.strand == -1: 
                 rec.is_reverse = True
                 rec.query_sequence = mp.revcomp(q['query_sequence'])
                 rec.query_qualities = q['query_qualities'][::-1]
-                rec.cigarstring =  str(len(q['query_sequence'])-hit.q_en) +'S' + hit.cigar_str + str(hit.q_st) + 'S'
+                cigar_start = str(len(q['query_sequence'])-hit.q_en)
+                cigar_end = str(hit.q_st)
+            
+            if cigar_start != '0' and cigar_end != '0':
+                rec.cigarstring = cigar_start + 'S' + hit.cigar_str + cigar_end + 'S'
+            elif cigar_start != '0':
+                rec.cigarstring = cigar_start + 'S' + hit.cigar_str
+            elif cigar_end != '0':
+                rec.cigarstring = hit.cigar_str + cigar_end + 'S'
+            else:
+                rec.cigarstring = hit.cigar_str 
             recs_list.append(rec)
         else:
             prime_qrange = list(range(hits[0].q_st,hits[0].q_en))
@@ -148,15 +137,14 @@ def mappy_hits_bam_fmt(q: dict, hits: list, header_dict: dict):
 
             recs_list.append(rec)
         ## creating tags
-        cigar_props = list(set(map(lambda x:x[1], hit.cigar)))
-        cig_dict = dict(zip(cigar_props, [0]*len(cigar_props)))
-        de_denom = 0
-        for i in hit.cigar:
-            cig_dict[i[1]] += i[0]
-            if i[1] == 0:
-                de_denom += i[0]
+        ### de tag: Gap-compressed per-base sequence divergence = matching 
+        de_denom = 0 #the de denominator
+        for i in hit.cigar: # loop through the array of CIGAR [length, operation]
+            #cig_dict[i[1]] += i[0] #for every operation, add the length to the dictionary
+            if i[1] == 0: #operation 0: Number of matched bases; Add up the number of matched bases
+                de_denom += i[0] # Add up the number of matched bases for the denominator
             else:
-                de_denom += 1
+                de_denom += 1 # Add 1 for any other operation (insertion, deletion, etc.)
         de = 1-(hit.mlen/de_denom)
         rounded_de = round(de, str(round(de,6)).split('.')[1].count('0') + 6)
 
@@ -170,13 +158,13 @@ def mappy_hits_bam_fmt(q: dict, hits: list, header_dict: dict):
         elif hit.strand == -1:
             strand_char = '-'
 
-        sa_tags.append(f"{hit.ctg},{hit.r_st},{strand_char},{str(hit.q_st) + 'S' + str(cig_dict.get(0)) + 'M' + str(cig_dict.get(2)) + 'D' + str(len(q['query_sequence']) - hit.q_en) +'S'},{hit.mapq},{hit.NM}")
+        sa_tags.append(f"{hit.ctg},{hit.r_st},{strand_char},{rec.cigarstring},{hit.mapq},{hit.NM}")
         tags.append([("NM", hit.NM), ("nn", (hit.blen - hit.mlen - hit.NM), "i"),("tp", tp, "A"),("de", rounded_de, "f"),("MD", hit.MD), ("cs", hit.cs)])
     
     return recs_list, tags, sa_tags
 
 
-def mappy_hits_fastq_fmt(q: dict, hits: list, header_dict: dict):
+def mappy_hits_bam_fmt_paired(q: dict, hits: list, header_dict: dict):
     sq_head = pysam.AlignmentHeader.from_dict(header_dict)
     rec_list = []
     hit_r1 = []
@@ -230,15 +218,14 @@ def mappy_hits_fastq_fmt(q: dict, hits: list, header_dict: dict):
         else:
             rec.cigarstring = hit.cigar_str
         ## creating tags
-        cigar_props = list(set(map(lambda x:x[1], hit.cigar)))
-        cig_dict = dict(zip(cigar_props, [0]*len(cigar_props)))
-        de_denom = 0
-        for d in hit.cigar:
-            cig_dict[d[1]] += d[0]
-            if d[1] == 0:
-                de_denom += d[0]
+        ### de tag: Gap-compressed per-base sequence divergence = matching 
+        de_denom = 0 #the de denominator
+        for i in hit.cigar: # loop through the array of CIGAR [length, operation]
+            #cig_dict[i[1]] += i[0] #for every operation, add the length to the dictionary
+            if i[1] == 0: #operation 0: Number of matched bases; Add up the number of matched bases
+                de_denom += i[0] # Add up the number of matched bases for the denominator
             else:
-                de_denom += 1
+                de_denom += 1 # Add 1 for any other operation (insertion, deletion, etc.)
         de = 1-(hit.mlen/de_denom)
         rounded_de = round(de, str(round(de,6)).split('.')[1].count('0') + 6)
         rec.tags =  [("NM", hit.NM), ("nn", (hit.blen - hit.mlen - hit.NM), "i"),("tp", tp, "A"), ("de", rounded_de, "f"),("MD", hit.MD), ("cs", hit.cs)]
@@ -270,182 +257,138 @@ def mappy_hits_fastq_fmt(q: dict, hits: list, header_dict: dict):
 
 
 
-def bam_mappy_al(bam: str, cpus: int, tech: str, ref: str,  outf: str):
 
-    print(f"Processing {bam}")
+def mappy_al(rfmt: str, cpus: int, tech: str, ref: str,  outf: str, foutf:str, file1:str, file2:str=None):
     aligner = mappy_al_ref(ref, tech, cpus)
-    
-    sq_head = pysam.AlignmentFile(bam, 'rb', check_sq=False).header.to_dict() | \
-    pysam.AlignmentHeader(
-    ).from_references(
-        reference_names=pysam.FastaFile(ref).references, 
-        reference_lengths=pysam.FastaFile(ref).lengths
-        ).to_dict() 
-    sq_head['PG'].append({'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment'})
-
-    with pysam.AlignmentFile(outf, 'wb', header=sq_head) as obam:  
-        for i in pysam.AlignmentFile(bam, 'rb', check_sq=False):
-            hits = list(aligner.map(i.query_sequence, cs=True, MD=True))
-
-            if not hits:
-                i.is_unmapped = True
-                obam.write(i)
-                continue
-
-            recs_list, tags, sa_tags = mappy_hits_bam_fmt({"query_name": i.query_name, "query_sequence": i.query_sequence, "query_qualities": i.query_qualities}, hits, sq_head)
-                
-            for read_alignment in recs_list:
-                read_sa_tag = sa_tags.copy()
-                read_sa_tag.pop(recs_list.index(read_alignment))
-                if not read_sa_tag:
-                    read_alignment.tags =  i.get_tags() + tags[recs_list.index(read_alignment)]
-                    obam.write(read_alignment)
-                    continue
-
-                read_alignment.tags =  i.get_tags() + tags[recs_list.index(read_alignment)] + [("SA", ';'.join(read_sa_tag))]
-                obam.write(read_alignment)
-
-
-
-def test_bam_mappy_al(bam: str, cpus: int, tech: str, ref: str,  outf: str, foutf:str):
-
-    print(f"Processing {bam}")
-    aligner = mappy_al_ref(ref, tech, cpus)
-    sq_head = pysam.AlignmentFile(bam, 'rb', check_sq=False).header.to_dict() | \
-            pysam.AlignmentHeader(
-            ).from_references(
-                reference_names=pysam.FastaFile(ref).references, 
-                reference_lengths=pysam.FastaFile(ref).lengths
-                ).to_dict()
-    sq_head['PG'].append({'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment'})
+    flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0}
+    sq_head = mappy_al_header(ref, rfmt, file1)
     obam = pysam.AlignmentFile(outf, 'wb', header=sq_head)
     fbam = pysam.AlignmentFile(foutf, 'wb', header=sq_head)
-    flagstats = {'unmapped':0, 'total_reads_mapped':0, 'removed_reads':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0}
     
-    for i in pysam.AlignmentFile(bam, 'rb', check_sq=False):
-        hits = list(aligner.map(i.query_sequence, cs=True, MD=True))
-        if not hits:
-            i.is_unmapped = True
-            flagstats['unmapped'] += 1
-            fbam.write(i)
-            continue
-        
-        flagstats['total_reads_mapped'] += 1
-        recs_list, tags, sa_tags = mappy_hits_bam_fmt({"query_name": i.query_name, "query_sequence": i.query_sequence, "query_qscore": i.query_qualities}, hits, sq_head)
+    if rfmt == "bam":
+        if tech == "ont":
+            for i in pysam.AlignmentFile(file1, 'rb', check_sq=False):
+                flagstats['total_reads'] += 1
+                hits = list(aligner.map(i.query_sequence, cs=True, MD=True))
+                if not hits:
+                    i.is_unmapped = True
+                    flagstats['unmapped'] += 1
+                    fbam.write(i)
+                    continue
 
-        if recs_list[0].is_qcfail:
-            flagstats['removed_reads'] += 1
-            for rec in recs_list:
-                fbam.write(rec)
-                continue        
-        
-        for read_alignment in recs_list:
-            if read_alignment.is_secondary:
-                flagstats['kept_secondary'] += 1
-            elif read_alignment.is_supplementary:
-                flagstats['kept_supplementary'] += 1
-            else:
-                flagstats['kept_primary'] += 1
-                
-            hit_index = recs_list.index(read_alignment)
-            read_sa_tag = sa_tags.copy()
-            read_sa_tag.pop(hit_index)
-            if not read_sa_tag:
-                read_alignment.tags =  i.get_tags() + tags[hit_index]
-                obam.write(read_alignment)
-                continue
+                recs_list, tags, sa_tags = mappy_hits_bam_fmt_single({"query_name": i.query_name, "query_sequence": i.query_sequence, "query_qualities": i.query_qualities}, hits, sq_head)
             
-            read_alignment.tags =  i.get_tags() + tags[hit_index] + [("SA", ';'.join(read_sa_tag))]
-            obam.write(read_alignment)
+                if recs_list[0].is_qcfail:
+                    flagstats['removed_reads_primary'] += 1
+                    for rec in recs_list:
+                        fbam.write(rec)
+                    continue        
+                
+                for read_alignment in recs_list:
+                    if read_alignment.is_secondary:
+                        flagstats['kept_secondary'] += 1
+                    elif read_alignment.is_supplementary:
+                        flagstats['kept_supplementary'] += 1
+                    else:
+                        flagstats['kept_primary'] += 1
+
+                    hit_index = recs_list.index(read_alignment)
+                    read_sa_tag = sa_tags.copy()
+                    read_sa_tag.pop(hit_index)
+                    if not read_sa_tag:
+                        read_alignment.tags =  i.get_tags() + tags[hit_index]
+                        obam.write(read_alignment)
+                        continue
+                    
+                    read_alignment.tags =  i.get_tags() + tags[hit_index] + [("SA", ';'.join(read_sa_tag))]
+                    obam.write(read_alignment)
+
+    elif rfmt == "fastq":
+        if file2 and tech == "illumina":
+            flagstats = flagstats | {'read1':0, 'read2':0}
+            with pysam.FastxFile(file1) as fq1, pysam.FastxFile(file2) as fq2:
+                for read1, read2 in zip(fq1, fq2):
+                    flagstats['total_reads'] += 2
+                    hits = list(aligner.map(read1.sequence, seq2=read2.sequence, cs=True, MD=True))
+                    read_name = list(set([read1.name.split("/")[0], read2.name.split("/")[0]]))[0]
+
+                    if not hits:
+                        rec1 = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head))
+                        rec2 = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head))
+                        rec1.query_sequence = read1.sequence
+                        rec2.query_sequence = read2.sequence
+                        rec1.query_qualities = read1.quality
+                        rec2.query_qualities = read2.quality
+                        rec1.is_read1 = True
+                        rec2.is_read2 = True
+                        for i in [rec1, rec2]:
+                            i.query_name = read_name
+                            i.is_unmapped = True
+                            i.is_paired = True
+                        fbam.write(rec1)
+                        fbam.write(rec2)
+                        flagstats['unmapped'] += 2
+                        continue
+
+                    rec_list = mappy_hits_bam_fmt_paired({"query_name": read_name, "seq1": read1.sequence, "seq2": read2.sequence, "quality1": read1.quality, "quality2": read2.quality}, hits, sq_head)
+
+                    for rec in rec_list:
+                        flagstats['kept_primary'] += 1
+                        if rec.is_read1:
+                            flagstats['read1'] += 1
+                        elif rec.is_read2:
+                            flagstats['read2'] += 1
+                        obam.write(rec)
+
+        else:
+            for i in pysam.FastxFile(file1):
+                flagstats['total_reads'] += 1
+                hits = list(aligner.map(i.sequence, cs=True, MD=True))
+                if not hits:
+                    rec = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head))
+                    rec.query_sequence = i.sequence
+                    rec.query_qualities = i.quality
+                    rec.query_name = i.name
+                    rec.is_unmapped = True
+                    flagstats['unmapped'] += 1
+                    fbam.write(rec)
+                    continue
+
+                recs_list, tags, sa_tags = mappy_hits_bam_fmt_single({"query_name": i.name, "query_sequence": i.sequence, "query_qualities": i.quality}, hits, sq_head)
+            
+                if recs_list[0].is_qcfail:
+                    flagstats['removed_reads_primary'] += 1
+                    for rec in recs_list:
+                        fbam.write(rec)
+                    continue        
+                
+                for read_alignment in recs_list:
+                    if read_alignment.is_secondary:
+                        flagstats['kept_secondary'] += 1
+                    elif read_alignment.is_supplementary:
+                        flagstats['kept_supplementary'] += 1
+                    else:
+                        flagstats['kept_primary'] += 1
+
+                    hit_index = recs_list.index(read_alignment)
+                    read_sa_tag = sa_tags.copy()
+                    read_sa_tag.pop(hit_index)
+                    if not read_sa_tag:
+                        read_alignment.tags = tags[hit_index]
+                        obam.write(read_alignment)
+                        continue
+                    
+                    read_alignment.tags = tags[hit_index] + [("SA", ';'.join(read_sa_tag))]
+                    obam.write(read_alignment)
+
     obam.close()
     fbam.close() 
 
+    pysam.sort("-o", outf.replace('.bam', '.sorted.bam'), outf)
+    pysam.index("-b", "-o", outf.replace('.bam', '.sorted.bam') + '.bai', outf.replace('.bam', '.sorted.bam'))
+   
     return flagstats
 
-
-   
-def fastq_mappy_al(fastq1: str, fastq2: str, cpus: int, tech: str, ref: str,  outf: str):
-    print(f"Processing {fastq1}, {fastq2}")
-    aligner = mappy_al_ref(ref, tech, cpus)
-    
-    sq_head = pysam.AlignmentHeader(
-            ).from_references(
-                reference_names=pysam.FastaFile(ref).references, 
-                reference_lengths=pysam.FastaFile(ref).lengths
-                ).to_dict()
-    sq_head['PG'] = [{'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment'}]
-
-    with pysam.AlignmentFile(outf, 'wb', header=sq_head) as obam:
-        with pysam.FastxFile(fastq1) as fq1, pysam.FastxFile(fastq2) as fq2:
-            for read1, read2 in zip(fq1, fq2):
-                hits = list(aligner.map(read1.sequence, seq2=read2.sequence, cs=True, MD=True))
-                read_name = list(set([read1.name.split("/")[0], read2.name.split("/")[0]]))[0]
-
-                if not hits:
-                    read1.is_read1 = True
-                    read2.is_read2 = True
-                    for i in [read1, read2]:
-                        i.is_unmapped = True
-                        i.is_paired = True
-                    obam.write(i)
-                    continue
-
-                rec_list = mappy_hits_fastq_fmt({"query_name": read_name, "seq1": read1.sequence, "seq2": read2.sequence, "quality1": read1.quality, "quality2": read2.quality}, hits, sq_head)
-
-                for rec in rec_list:
-                    obam.write(rec)
-
-
-
-def mini2_al(fq: list, cpus: int, outf: str, ref: str, tech: str):
-    print("mini2_al")
-    print(fq)
-    sortbam = open(outf, 'a')
-
-    if tech == "ont":
-        targ = "lr:hq"
-    elif tech == "illumina":
-        targ = "sr"
-
-    fq_list = []
-    for faq in fq:
-        if os.path.isfile(faq) and os.path.getsize(faq) > 0:
-            fq_list.append(os.path.abspath(faq))
-    mini_command = ['minimap2', '-ax', targ, '-t', str(cpus), ref, *fq_list]
-
-    # Second command-line
-    view_command = ['samtools', 'view', '-Sb']
-    
-    # Third command-line
-    sort_command = ['samtools', 'sort', '-@', str(cpus), '-o', outf]
-
-    # Launch first process
-    mini_process = subprocess.Popen(
-        mini_command,
-        stdout=subprocess.PIPE
-        )
-
-    # Launch second process and connect it to the first one
-    view_process = subprocess.Popen(
-        view_command, 
-        stdin=mini_process.stdout, 
-        stdout=subprocess.PIPE
-    )
-
-    # Launch third process and connect it to the first one
-    sort_process = subprocess.Popen(
-        sort_command, 
-        stdin=view_process.stdout, 
-        stdout=sortbam
-    )
-
-    # Let stream flow between them
-    output, _ = sort_process.communicate()
-
-    if output:
-        return output
-    else:
-        return None
 
 
 def amptable(ampstats: str, sampid: str) -> pd.DataFrame:
