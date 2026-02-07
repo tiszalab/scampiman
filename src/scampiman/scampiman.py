@@ -68,6 +68,11 @@ def scampiman():
                         choices=['fastq', 'bam'],
                         help='read file format'
                         )
+    parser.add_argument("-c", "--read-configuration",
+                        dest="rcon", default="single-end", 
+                        choices=['single-end', 'paired-end'],
+                        help='read file configuration'
+                        )
     parser.add_argument("-t", "--input-type",
                         dest="intype", default="files", 
                         choices=['files', 'directory'],
@@ -203,13 +208,14 @@ def scampiman():
 
         if str(args.rfmt) == "fastq":
             logger.info(f'> fastq option ')
-            scaf.mini2_al(
-                args.READS,
-                def_CPUs,
-                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
-                str(args.genome),
-                args.SEQTECH
-            )
+            
+            #scaf.mini2_al(
+            #    args.READS,
+            #    def_CPUs,
+            #    os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
+            #    str(args.genome),
+            #    args.SEQTECH
+            #)
     except Exception as e:
         logger.error("Read Alignment ERROR: ")
         logger.error(e)
@@ -240,7 +246,7 @@ def scampiman():
             )
 
             logger.info(f'ampclip')
-            logger.info(f'longest amplicon length: {scaf.ampliconstats_length(args.bed)-51}')
+            logger.info(f'longest amplicon length: {scaf.ampliconstats_length(args.bed)%2}')
 
             pysam.samtools.ampliconclip(
                 '--both-ends',
