@@ -80,7 +80,7 @@ def scampiman():
                         )
 
     parser.add_argument("--seqtech", dest="SEQTECH",
-                        default='illumina', 
+                        default='ont', 
                         choices=['illumina', 'ont'],
                         help='Which sequencing technology produced the reads?'
                         )
@@ -141,6 +141,21 @@ def scampiman():
         if not os.path.isfile(inf):
             logger.error(f'input file not found at {inf}. exiting.')
             sys.exit()
+    
+    #check if bed and genome files have same accessions
+    if not scaf.bed_genome_match(
+        str(args.bed),
+        str(args.genome)
+    ):
+        logger.error("accessions in bed file and genome file do not match.")
+        logger.error("Exiting.")
+        sys.exit()
+    
+    # if args.rfmt is "bam" and args.rcon is "paired-end", exit
+    if str(args.rfmt) == "bam" and str(args.rcon) == "paired-end":
+        logger.error("bam format is not supported for paired-end reads.")
+        logger.error("Exiting.")
+        sys.exit()
 
     align_starttime = time.perf_counter()
 
@@ -150,72 +165,68 @@ def scampiman():
     logger.info(f'read string: ')
     logger.info(f'{READ_STR}')
 
-    #check if bed and genome files have same accessions
-    if not scaf.bed_genome_match(
-        str(args.bed),
-        str(args.genome)
-    ):
-        logger.error("accessions in bed file and genome file do not match.")
-        logger.error("Exiting.")
-        sys.exit()
-        
+    
     # run main pipeline
     try:
         if str(args.rfmt) == "bam":
             logger.info(f'> bam option ')
-            if str(args.intype) == "files":
-                logger.info(f'> files option ')
-
-                if len(args.READS) > 1:
-                    scaf.pysam_cat(
-                        READ_STR,
-                        args.intype,
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
-                    )
-
-                    scaf.dorado_al(
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
-                        def_CPUs, 
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                        str(args.genome)
-                    )
-
-                else:
-                    scaf.dorado_al(
-                        READ_STR, 
-                        def_CPUs, 
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
-                        str(args.genome)
-                    )
-            if str(args.intype) == "directory":
-                logger.info(f'> directory option ')
-                try: 
-                    scaf.pysam_cat(
-                        READ_STR,
-                        args.intype,
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
-                    )
-                except Exception as e:
-                    logger.error("samtools cat not successful:")
-                    logger.error(e)
-
-                scaf.dorado_al(
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
-                    def_CPUs, 
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                    str(args.genome)
-                )
-
-        if str(args.rfmt) == "fastq":
+        elif str(args.rfmt) == "fastq":
             logger.info(f'> fastq option ')
-            
-            #scaf.mini2_al(
-            #    args.READS,
-            #    def_CPUs,
-            #    os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
-            #    str(args.genome),
-            #    args.SEQTECH
-            #)
+        
+        if str(args.intype) == "files":
+            logger.info(f'> files option ')
+        elif str(args.intype) == "directory":
+            logger.info(f'> directory option ')
+
+        if str(args.rcon) == "single-end":
+            logger.info(f'> single-end option ')
+            reads_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
+            try:
+                alignstats = scaf.mappy_al_single(
+                    args.rfmt,
+                    def_CPUs,
+                    args.SEQTECH,
+                    str(args.genome),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.bam'),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
+                    reads_list
+                )
+                alignstats.to_csv(
+                    os.path.join(
+                        args.OUTPUT_DIR,
+                        f'{str(args.SAMPLE)}.alignmentstats.tsv'
+                    ),
+                    sep = "\t",
+                    index=False
+                )
+            except:
+                logger.error("Failed to align read files.")
+
+        elif str(args.rcon) == "paired-end":
+            logger.info(f'> paired-end option ')
+            try:
+                read1_list, read2_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
+                alignstats = scaf.mappy_al_paired(
+                    #args.rfmt,
+                    def_CPUs,
+                    args.SEQTECH,
+                    str(args.genome),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.bam'),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
+                    read1_list,
+                    read2_list
+                )
+                alignstats.to_csv(
+                    os.path.join(
+                        args.OUTPUT_DIR,
+                        f'{str(args.SAMPLE)}.alignmentstats.tsv'
+                    ),
+                    sep = "\t",
+                    index=False
+                )            
+            except:
+                logger.error("Failed to align read files.")
+
     except Exception as e:
         logger.error("Read Alignment ERROR: ")
         logger.error(e)
@@ -230,11 +241,6 @@ def scampiman():
 
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
-            logger.info(f'flagstat')
-            scaf.flag_stats(
-                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
-                os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.flagstat.tsv') 
-            )
 
             logger.info(f'samcov')
             pysam.samtools.coverage(
@@ -303,6 +309,7 @@ def scampiman():
 
     logger.info(f"### scampiman outputs: ")
     for fin in [
+        f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.alignmentstats.tsv',
         f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.amplicontable.tsv',
         f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv',
         f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.samcov.tsv'
