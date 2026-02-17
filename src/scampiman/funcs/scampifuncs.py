@@ -12,13 +12,16 @@ from datetime import timedelta
 logger = logging.getLogger("pct_logger")
 
 def shrimp_header(): 
-    print("\n🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
-    +"🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
-    +"🌊🦐🌊🌊🌊🦐🦐🦐🌊🦐🦐🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🦐🌊🌊🦐🌊\n"
-    +"🌊🦐🦐🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊🦐🌊\n"
-    +"🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🦐🌊🦐🌊🦐🦐🌊\n"
-    +"🌊🦐🦐🦐🌊🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🦐🌊\n"
-    +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n")
+    print("\n🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+    +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🦐🦐🌊🦐🌊🌊🌊🦐🌊🦐🦐🦐🦐🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+    +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🌊🦐🌊🦐🦐🌊🦐🦐🌊🦐🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+    +"🌊🌊🦐🦐🦐🌊🦐🦐🦐🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🦐🌊🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊\n"
+    +"🌊🦐🌊🌊🌊🌊🦐🌊🌊🌊🦐🦐🦐🦐🌊🦐🌊🌊🌊🦐🌊🦐🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🦐🌊\n"
+    +"🌊🌊🦐🦐🌊🌊🦐🌊🌊🌊🦐🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🦐🌊🦐🦐🌊🦐🌊\n"
+    +"🌊🌊🌊🌊🦐🌊🦐🦐🦐🌊🦐🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊\n"
+    +"🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🦐🌊🌊🦐🌊\n"
+     "🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+     "🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n")
 
 
 def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float, bar_width: int, job: str) -> None:
@@ -70,11 +73,11 @@ def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float,
         # Calculate percentage
         percent = int(progress * 100)
         # Print the progress bar (overwrite previous line)
-        sys.stdout.write(f"\r{bar} {percent:3d}% | {elapsed_process}/{total_process} | {timedelta(seconds=time_taken)}\n")
+        sys.stdout.write(f"\r{bar} {percent:3d}% | Amplicon Analysis | {timedelta(seconds=time_taken)}\n")
         sys.stdout.flush()
         
         if elapsed_process == total_process:
-            print(f"\r{bar} {percent:3d}% | {elapsed_process}/{total_process} ✔ | {timedelta(seconds=time_taken)}\n")
+            print(f"\r{bar} {percent:3d}% | Amplicon Analysis ✔ | {timedelta(seconds=time_taken)}\n")
             print("\n\n✨ Shrimp has arrived! Scampiman complete! ✨\n")
         elif elapsed_process < total_process:
             time.sleep(1)
@@ -124,8 +127,8 @@ def file_paths(reads: str, rfmt: str, rcon: str, intype: str):
     # if paired-end, sort the files into R1 and R2
     elif rcon == "paired-end":
         #establish the file patterns
-        r1_pattern = re.compile(r'(.+?)(_R1_|_R1\.|.R1\.|_1\.|_1_)(.*)$')
-        r2_pattern = re.compile(r'(.+?)(_R2_|_R2\.|.R2\.|_2\.|_2_)(.*)$')
+        r1_pattern = re.compile(r'(.+?)(_R1_|_R1\.|.R1\.|_1\.|_1_)(.*)$') # pattern for R1 files
+        r2_pattern = re.compile(r'(.+?)(_R2_|_R2\.|.R2\.|_2\.|_2_)(.*)$') # pattern for R2 files
         r1_files = {}
         r2_files = {}
         #sort the files into R1 and R2
@@ -161,6 +164,7 @@ def file_paths(reads: str, rfmt: str, rcon: str, intype: str):
 
 
 def mappy_al_ref(ref: str, tech: str, cpus:int):
+    """Set up reference for the alignment."""
     if tech == "ont":
         targ = "lr:hq"
     elif tech == "illumina":
@@ -207,7 +211,7 @@ def mappy_al_header(ref: str, rfmt:str, file_list: list):
 
 
 def mappy_hits_bam_fmt_single(q: dict, hits: list, header_dict: dict):
-    """Format mappy hits to bam format
+    """Format mappy hits to bam format for 'single-end' reads
     
     Args:
         q: query dictionary (read name, sequence, quality/qscore string)
@@ -312,6 +316,13 @@ def mappy_hits_bam_fmt_single(q: dict, hits: list, header_dict: dict):
 
 
 def mappy_hits_bam_fmt_paired(q: dict, hits: list, header_dict: dict):
+    """Format mappy hits to bam format for 'paired-end' reads
+    
+    Args:
+        q: query dictionary (read1 name, read2 name, read1 sequence, read2 sequence, read1 quality/qscore string, read2 quality/qscore string)
+        hits: list of mappy hits
+        header_dict: header dictionary from mappy_al_header or pysam.AlignmentHeader.from_dict()
+    """
     sq_head = pysam.AlignmentHeader.from_dict(header_dict)
     rec_list = []
     hit_r1 = []
@@ -326,28 +337,28 @@ def mappy_hits_bam_fmt_paired(q: dict, hits: list, header_dict: dict):
         
         if hit.read_num == 1:
             rec.is_read1 = True
-            rec.query_name = f"{q['query_name_read1']}_R1"
+            rec.query_name = f"{q['query_name_read1']}_1"
             q_seq = q['seq1']
             q_qual = q['quality1']
             hit_r1.append(hit)
 
         elif hit.read_num == 2:
             rec.is_read2 = True
-            rec.query_name = f"{q['query_name_read2']}_R2"
+            rec.query_name = f"{q['query_name_read2']}_2"
             q_seq = q['seq2']
             q_qual = q['quality2']
             hit_r2.append(hit)
 
         if not hit.is_primary:
-            tp = 'S'
+            tp = 'S' # set tp tag to 'S' if the hit is not primary
             if hit.read_num == 1:
-                prime_qrange = list(range(hit_r1[0].q_st,hit_r1[0].q_en))
+                prime_qrange = list(range(hit_r1[0].q_st,hit_r1[0].q_en)) # range of base positions on the read1 of the primary read1 alignment hits[0]
             elif hit.read_num == 2:
-                prime_qrange = list(range(hit_r2[0].q_st,hit_r2[0].q_en))
+                prime_qrange = list(range(hit_r2[0].q_st,hit_r2[0].q_en)) # range of base positions on the read2 of the primary read2 alignment hits[0]
             
-            hit_qrange = list(range(hit.q_st, hit.q_en))
-            common_bases = set(prime_qrange) & set(hit_qrange)
-            qlen_olap_ratio = len(common_bases)/len(hit_qrange)
+            hit_qrange = list(range(hit.q_st, hit.q_en)) # range of base positions on the read of the hit
+            common_bases = set(prime_qrange) & set(hit_qrange) # common READ bases between the primary hit and the hit
+            qlen_olap_ratio = len(common_bases)/len(hit_qrange) # ratio of common READ bases to the length of the hit
             
             if qlen_olap_ratio < 0.5: 
                 rec.is_supplementary = True
@@ -361,16 +372,17 @@ def mappy_hits_bam_fmt_paired(q: dict, hits: list, header_dict: dict):
             rec.mate_is_reverse = True
             rec.query_sequence = q_seq
             rec.query_qualities = q_qual
-            cigar_start = str(hit.q_st)
-            cigar_end = str(len(q_qual)-hit.q_en)
+            cigar_start = str(hit.q_st) # start position of the cigar string on the read
+            cigar_end = str(len(q_seq)-hit.q_en) # end position of the cigar string on the read
         elif hit.strand == -1: 
             rec.is_reverse = True
             rec.mate_is_forward = True
-            rec.query_sequence = mp.revcomp(q_seq)
-            rec.query_qualities = q_qual[::-1]
-            cigar_start = str(len(q_qual)-hit.q_en)
-            cigar_end = str(hit.q_st)
+            rec.query_sequence = mp.revcomp(q_seq) # reverse complement of the read sequence
+            rec.query_qualities = q_qual[::-1] # reverse of the read quality/qscore string
+            cigar_start = str(len(q_seq)-hit.q_en) # start position of the cigar string on the read (in reverse)
+            cigar_end = str(hit.q_st) # end position of the cigar string on the read (in reverse)
         
+        # writing cigar string out 
         if cigar_start != '0' and cigar_end != '0':
             rec.cigarstring = cigar_start + 'S' + hit.cigar_str + cigar_end + 'S'
         elif cigar_start != '0':
@@ -383,42 +395,42 @@ def mappy_hits_bam_fmt_paired(q: dict, hits: list, header_dict: dict):
         ### de tag: Gap-compressed per-base sequence divergence = matching 
         de_denom = 0 #the de denominator
         for i in hit.cigar: # loop through the array of CIGAR [length, operation]
-            #cig_dict[i[1]] += i[0] #for every operation, add the length to the dictionary
             if i[1] == 0: #operation 0: Number of matched bases; Add up the number of matched bases
                 de_denom += i[0] # Add up the number of matched bases for the denominator
             else:
                 de_denom += 1 # Add 1 for any other operation (insertion, deletion, etc.)
         de = 1-(hit.mlen/de_denom)
-        rounded_de = round(de, str(round(de,6)).split('.')[1].count('0') + 6)
+        rounded_de = round(de,4)
         rec.tags =  [("NM", hit.NM), ("nn", (hit.blen - hit.mlen - hit.NM), "i"),("tp", tp, "A"), ("de", rounded_de, "f"),("MD", hit.MD), ("cs", hit.cs)]
 
         rec_list.append(rec)
 
-    for h1, h2 in zip(hit_r1, hit_r2):
-        rec_1 = rec_list[hits.index(h1)]
-        rec_2 = rec_list[hits.index(h2)]
-        rec_1.next_reference_name = rec_2.reference_name
-        rec_1.next_reference_id = rec_2.reference_id
-        rec_1.next_reference_start = rec_2.reference_start
+    for h1, h2 in zip(hit_r1, hit_r2): # loop through the hits of read1 and read2
+        rec_1 = rec_list[hits.index(h1)] #set the read1 hit
+        rec_2 = rec_list[hits.index(h2)] #set the read2 hit
+        rec_1.next_reference_name = rec_2.reference_name #set the next reference name for read1
+        rec_1.next_reference_id = rec_2.reference_id #set the next reference id for read1
+        rec_1.next_reference_start = rec_2.reference_start #set the next reference start for read1
         rec_1.is_proper_pair = True
-        rec_2.next_reference_id = rec_1.reference_id
-        rec_2.next_reference_start = rec_1.reference_start
-        rec_2.next_reference_name = rec_1.reference_name
+        rec_2.next_reference_id = rec_1.reference_id #set the next reference id for read2
+        rec_2.next_reference_start = rec_1.reference_start #set the next reference start for read2
+        rec_2.next_reference_name = rec_1.reference_name #set the next reference name for read2
         rec_2.is_proper_pair = True
-        
-        if not rec_1.is_reverse:
-            rec_2.template_length = h2.r_st - h1.r_st + h2.mlen
-            rec_1.template_length = rec_2.template_length * -1
-        else:
-            rec_1.template_length = h1.r_st - h2.r_st + h1.mlen
-            rec_2.template_length = rec_1.template_length * -1
+        # Calculate the TLEN: the number of bases covered by the reads from the same fragment. Plus/Minus means the current read is the leftmost/rightmost read.
+        if rec_1.is_reverse: #if read1 is reverse
+            rec_1.template_length = rec_1.next_reference_start - rec_1.reference_start - h1.mlen - h1.NM # read2 start - read1 start - read1 length (not gaps, ambigious, or mismatches) - read1 NM (mismatches)
+            rec_2.template_length = rec_1.template_length * -1 # read1 template length * -1
+        else: #if read1 is forward            
+            rec_2.template_length = rec_2.next_reference_start - rec_2.reference_start - h2.mlen - h2.NM # read1 start - read2 start - read2 length (not gaps, ambigious, or mismatches) - read2 NM (mismatches)
+            rec_1.template_length = rec_2.template_length * -1 # read2 template length * -1
+
         # add them back in
         rec_list[hits.index(h1)] = rec_1
         rec_list[hits.index(h2)] = rec_2
-
+        # start marking qcfail reads for removal
         if rec_1.is_forward == rec_2.is_forward: #if both reads are on the same strand
             rec_list[0].is_qcfail = True
-        if rec_1.get_overlap(h2.r_st, h2.r_en) == 0: # if the reference mapping is not overlapping between the two reads
+        if rec_1.get_overlap(h2.r_st, h2.r_en) == 0: #if the reference mapping is not overlapping between the two reads
             rec_list[0].is_qcfail = True
     
     if len(hit_r1) != len(hit_r2): #if there are not the same number of hits for both reads
@@ -446,42 +458,59 @@ def mappy_hits_bam_fmt_paired(q: dict, hits: list, header_dict: dict):
 
 
 def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:list):
-    aligner = mappy_al_ref(ref, tech, cpus)
-    flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0}
-    sq_head, read_count = mappy_al_header(ref, rfmt, file1)
-    obam = pysam.AlignmentFile(outf, 'wb', header=sq_head)
-    fbam = pysam.AlignmentFile(foutf, 'wb', header=sq_head)
+    """Align single-end reads to reference.
+        Args:
+        rfmt: read format (bam/fastq)
+        cpus: number of cpus
+        tech: sequencing technology (ont/illumina)
+        ref: reference file
+        outf: output file
+        foutf: output file for failed reads
+        file1: list of files to align
+        Returns: alignment stats as pandas dataframe
+    """
+    aligner = mappy_al_ref(ref, tech, cpus) # create aligner
+    flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0} # create flagstats dictionary
+    sq_head, read_count = mappy_al_header(ref, rfmt, file1) # create header and get totalcount of reads
+    obam = pysam.AlignmentFile(outf, 'wb', header=sq_head) # create output BAM file
+    fbam = pysam.AlignmentFile(foutf, 'wb', header=sq_head) # create failed BAM file
     
     # for scampiman progress bar
-    multiplier = int(read_count / 50)
-    progress_list = [read_count * multiplier for read_count in range(1,50)]
-    progress_list.append(read_count)
-    header_starttime = time.perf_counter()
-    shrimp_progress(read_count, flagstats['total_reads'], 0, 40, "align")
+    multiplier = int(read_count / 50) # after how many reads to update progress bar
+    progress_list = [read_count * multiplier for read_count in range(1,50)] # create list of read counts to update progress bar based on multiplier
+    progress_list.append(read_count) # add total number of reads to progress list
+    header_starttime = time.perf_counter() # start timer for progress bar
+    shrimp_progress(read_count, flagstats['total_reads'], 0, 40, "align") # start progress bar
     if rfmt == "bam":
         for bam in file1:
             for i in pysam.AlignmentFile(bam, 'rb', check_sq=False):
-                flagstats['total_reads'] += 1
-                if flagstats['total_reads'] in progress_list:
+                flagstats['total_reads'] += 1 # add 1 to total reads processed
+                # update progress bar if the read number processed is in the progress list
+                if flagstats['total_reads'] in progress_list: 
                     header_endtime = time.perf_counter()
                     time_taken = header_endtime - header_starttime
                     shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align")
                 
-                hits = list(aligner.map(i.query_sequence, cs=True, MD=True))
+                hits = list(aligner.map(i.query_sequence, cs=True, MD=True)) # get alignment hits
+
+                # if no hits, write to failed BAM file
                 if not hits:
                     i.is_unmapped = True
                     flagstats['unmapped'] += 1
                     fbam.write(i)
                     continue
 
+                # format hits for BAM file; get tags and SA tags
                 recs_list, tags, sa_tags = mappy_hits_bam_fmt_single({"query_name": i.query_name, "query_sequence": i.query_sequence, "query_qualities": i.query_qualities}, hits, sq_head)
             
+                # if primary read is qcfail, write all hits to failed BAM file
                 if recs_list[0].is_qcfail:
-                    flagstats['removed_reads_primary'] += 1
+                    flagstats['removed_reads_primary'] += 1 # add 1 to the removed reads counter
                     for rec in recs_list:
                         fbam.write(rec)
                     continue        
                 
+                # if passed primary read, write to output BAM file
                 for read_alignment in recs_list:
                     if read_alignment.is_secondary:
                         flagstats['kept_secondary'] += 1
@@ -490,137 +519,163 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
                     else:
                         flagstats['kept_primary'] += 1
 
-                    hit_index = recs_list.index(read_alignment)
-                    read_sa_tag = sa_tags.copy()
-                    read_sa_tag.pop(hit_index)
-                    if not read_sa_tag:
-                        read_alignment.tags =  i.get_tags() + tags[hit_index]
-                        obam.write(read_alignment)
+                    # add tags to read alignment
+                    hit_index = recs_list.index(read_alignment) # get position of hit in recs_list
+                    read_sa_tag = sa_tags.copy() # copy sa_tags into new variable that can be modified
+                    read_sa_tag.pop(hit_index) # remove the current hit's sa_tag from sa_tags
+                    # if no other hit sa tags, write to output BAM file without SA tag; 
+                    if not read_sa_tag: 
+                        read_alignment.tags =  i.get_tags() + tags[hit_index] # add original BAM tags and tags from the read alignment
+                        obam.write(read_alignment) # write to output BAM file
                         continue
-                    
-                    read_alignment.tags =  i.get_tags() + tags[hit_index] + [("SA", ';'.join(read_sa_tag))]
-                    obam.write(read_alignment)
+                    # if there are other hit sa tags, write to output BAM file with SA tag
+                    read_alignment.tags =  i.get_tags() + tags[hit_index] + [("SA", ';'.join(read_sa_tag))] # add original BAM tags, tags from the read alignment and SA tag
+                    obam.write(read_alignment) # write to output BAM file
 
     elif rfmt == "fastq":
         for fastq in file1:
             for i in pysam.FastxFile(fastq):
                 flagstats['total_reads'] += 1
+                # for progress bar
                 if flagstats['total_reads'] in progress_list:
-                    header_endtime = time.perf_counter()
-                    time_taken = header_endtime - header_starttime
-                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align")
+                    header_endtime = time.perf_counter() # end timer for progress bar
+                    time_taken = header_endtime - header_starttime # calculate time taken
+                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align") # update progress bar
 
-                hits = list(aligner.map(i.sequence, cs=True, MD=True))
+                # get alignment hits
+                hits = list(aligner.map(i.sequence, cs=True, MD=True)) # mappy mapping
+
+                # if no hits, write to failed BAM file
                 if not hits:
-                    rec = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head))
-                    rec.query_sequence = i.sequence
-                    rec.query_qualities = i.quality
-                    rec.query_name = i.name
-                    rec.is_unmapped = True
-                    flagstats['unmapped'] += 1
-                    fbam.write(rec)
+                    rec = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head)) # make an alignedsegment object
+                    rec.query_sequence = i.sequence # set query sequence
+                    rec.query_qualities = i.quality # set query qualities
+                    rec.query_name = i.name # set query name
+                    rec.is_unmapped = True # set is_unmapped to True
+                    flagstats['unmapped'] += 1 # add 1 to the unmapped counter
+                    fbam.write(rec) # write to failed BAM file
                     continue
 
+                # format hits for BAM file; get tags and SA tags
                 recs_list, tags, sa_tags = mappy_hits_bam_fmt_single({"query_name": i.name, "query_sequence": i.sequence, "query_qualities": i.quality}, hits, sq_head)
             
+                # if primary read is qcfail, write all hits to failed BAM file
                 if recs_list[0].is_qcfail:
-                    flagstats['removed_reads_primary'] += 1
+                    flagstats['removed_reads_primary'] += 1 # add 1 to the removed reads counter
                     for rec in recs_list:
-                        fbam.write(rec)
+                        fbam.write(rec) # write to failed BAM file
                     continue        
                 
                 for read_alignment in recs_list:
                     if read_alignment.is_secondary:
-                        flagstats['kept_secondary'] += 1
+                        flagstats['kept_secondary'] += 1 # add 1 to the secondary reads counter
                     elif read_alignment.is_supplementary:
-                        flagstats['kept_supplementary'] += 1
+                        flagstats['kept_supplementary'] += 1 # add 1 to the supplementary reads counter
                     else:
-                        flagstats['kept_primary'] += 1
+                        flagstats['kept_primary'] += 1 # add 1 to the primary reads counter
 
-                    hit_index = recs_list.index(read_alignment)
-                    read_sa_tag = sa_tags.copy()
-                    read_sa_tag.pop(hit_index)
-                    if not read_sa_tag:
-                        read_alignment.tags = tags[hit_index]
-                        obam.write(read_alignment)
+                    # add tags to read alignment
+                    hit_index = recs_list.index(read_alignment) # get position of hit in recs_list
+                    read_sa_tag = sa_tags.copy() # copy sa_tags into new variable that can be modified
+                    read_sa_tag.pop(hit_index) # remove the current hit's sa_tag from sa_tags
+                    # if no other hit sa tags, write to output BAM file without SA tag; 
+                    if not read_sa_tag: 
+                        read_alignment.tags =  i.get_tags() + tags[hit_index] # add original BAM tags and tags from the read alignment
+                        obam.write(read_alignment) # write to output BAM file
                         continue
-                    
+                    # if there are other hit sa tags, write to output BAM file with SA tag
                     read_alignment.tags = tags[hit_index] + [("SA", ';'.join(read_sa_tag))]
                     obam.write(read_alignment)
     obam.close()
     fbam.close() 
-    pysam.sort("-o", outf.replace('.bam', '.sort.bam'), outf)
+    pysam.sort("-o", outf.replace('.bam', '.sort.bam'), outf) # sort BAM file
     
-    flag_df = pd.DataFrame(flagstats, index=[0])
+    flag_df = pd.DataFrame(flagstats, index=[0]) # create flagstats pandas DataFrame
     return flag_df
 
 
 
 def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:list, file2:list):
-    aligner = mappy_al_ref(ref, tech, cpus)
-    flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0, 'read1':0, 'read2':0}
+    """Align paired-end reads to reference. This assumes that the reads are FASTQ format.
+        Args:
+        cpus: number of cpus
+        tech: sequencing technology (ont/illumina)
+        ref: reference file
+        outf: output file
+        foutf: output file for failed reads
+        file1: list of read 1 files to align
+        file2: list of read 2 files to align
+        Returns: alignment stats as pandas dataframe
+    """
+    aligner = mappy_al_ref(ref, tech, cpus) # create aligner
+    flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0, 'read1':0, 'read2':0} # create flagstats dictionary
 
-    files = file1 + file2
-    sq_head, read_count = mappy_al_header(ref, 'fastq', files)
-    obam = pysam.AlignmentFile(outf, 'wb', header=sq_head)
-    fbam = pysam.AlignmentFile(foutf, 'wb', header=sq_head)
+    files = file1 + file2 # combine file1 and file2 into one list for header creation
+    sq_head, read_count = mappy_al_header(ref, 'fastq', files) # create header and get totalcount of reads
+    obam = pysam.AlignmentFile(outf, 'wb', header=sq_head) # create output BAM file
+    fbam = pysam.AlignmentFile(foutf, 'wb', header=sq_head) # create failed BAM file
 
     # for scampiman progress bar
-    multiplier = int(read_count / 40)
-    progress_list = [read_count * multiplier for read_count in range(0,40)]
-    progress_list.append(read_count)
-    header_starttime = time.perf_counter()
-    shrimp_progress(read_count, flagstats['total_reads'], 0, 40, "align")
+    multiplier = int(read_count / 50) # after how many reads to update progress bar
+    progress_list = [read_count * multiplier for read_count in range(1,50)] # create list of read counts to update progress bar based on multiplier
+    progress_list.append(read_count) # add total number of reads to progress list
+    header_starttime = time.perf_counter() # start timer for progress bar
+    shrimp_progress(read_count, flagstats['total_reads'], 0, 40, "align") # start progress bar
 
-    for fastq1, fastq2 in zip(file1, file2):
-        with pysam.FastxFile(fastq1) as fq1, pysam.FastxFile(fastq2) as fq2:
-            for read1, read2 in zip(fq1, fq2):
-                flagstats['total_reads'] += 2
-                if flagstats['total_reads'] in progress_list:
+    # align reads
+    for fastq1, fastq2 in zip(file1, file2): # zip file1 and file2 to be processed in parallel
+        with pysam.FastxFile(fastq1) as fq1, pysam.FastxFile(fastq2) as fq2: # open fastq files
+            for read1, read2 in zip(fq1, fq2): # zip read1 and read2 to be processed in parallel
+                flagstats['total_reads'] += 2 # add 2 to total reads counter for read 1 and read 2
+
+                # update progress bar if the read number processed is in the progress list
+                if flagstats['total_reads'] in progress_list: 
                     header_endtime = time.perf_counter()
                     time_taken = header_endtime - header_starttime
                     shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align")
-
-                hits = list(aligner.map(read1.sequence, seq2=read2.sequence, cs=True, MD=True))
+                
+                # get alignment hits
+                hits = list(aligner.map(read1.sequence, seq2=read2.sequence, cs=True, MD=True)) # mappy mapping
+                
+                # if no hits, write to failed BAM file
                 if not hits:
-                    rec1 = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head))
-                    rec2 = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head))
-                    rec1.query_sequence = read1.sequence
-                    rec2.query_sequence = read2.sequence
-                    rec1.query_qualities = read1.quality
-                    rec2.query_qualities = read2.quality
-                    rec1.query_name = read1.name
-                    rec2.query_name = read2.name
-                    rec1.is_read1 = True
-                    rec2.is_read2 = True
-                    for i in [rec1, rec2]:
-                        i.is_unmapped = True
-                        i.is_paired = True
-                    fbam.write(rec1)
-                    fbam.write(rec2)
-                    flagstats['unmapped'] += 2
+                    for u in [read1, read2]:
+                        rec = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head)) # make an alignedsegment object
+                        rec.query_sequence = u.sequence # set query sequence
+                        rec.query_qualities = u.quality # set query qualities
+                        rec.query_name = u.name # set query name
+                        rec.is_unmapped = True # set is_unmapped to True
+                        rec.is_paired = True # set is_paired to True
+                        if u == read1:
+                            rec.is_read1 = True # set is_read1 to True
+                        else:
+                            rec.is_read2 = True # set is_read2 to True
+                        fbam.write(rec) # write to failed BAM file
+                    flagstats['unmapped'] += 2 # add 2 to the unmapped counter
                     continue
 
+                # format hits for BAM file; tags created within the function
                 rec_list = mappy_hits_bam_fmt_paired({"query_name_read1": read1.name, "query_name_read2": read2.name,"seq1": read1.sequence, "seq2": read2.sequence, "quality1": read1.quality, "quality2": read2.quality}, hits, sq_head)
 
-                if rec_list[0].is_qcfail:
-                    flagstats['removed_reads_primary'] += 2
+                # if primary read is qcfail, write all reads to failed BAM file
+                if rec_list[0].is_qcfail: 
+                    flagstats['removed_reads_primary'] += 2 # add 2 to the removed reads counter
                     for rec in rec_list:
-                        fbam.write(rec)
+                        fbam.write(rec) # write to failed BAM file
                     continue
-                    
+                # if passed primary read, write to output BAM file    
                 for rec in rec_list:                            
-                    flagstats['kept_primary'] += 1
+                    flagstats['kept_primary'] += 1 # add 1 to the primary reads counter
                     if rec.is_read1:
-                        flagstats['read1'] += 1
+                        flagstats['read1'] += 1 # add 1 to the read 1 counter
                     elif rec.is_read2:
-                        flagstats['read2'] += 1
-                    obam.write(rec)               
+                        flagstats['read2'] += 1 # add 1 to the read 2 counter
+                    obam.write(rec) # write to output BAM file               
     obam.close()
     fbam.close() 
-    pysam.sort("-o", outf.replace('.bam', '.sort.bam'), outf)
+    pysam.sort("-o", outf.replace('.bam', '.sort.bam'), outf) # sort BAM file
     
-    flag_df = pd.DataFrame(flagstats, index=[0])
+    flag_df = pd.DataFrame(flagstats, index=[0]) # create flagstats pandas DataFrame
     return flag_df
 
 
@@ -668,6 +723,7 @@ def amptable(ampstats: str, sampid: str) -> pd.DataFrame:
     odf['sample_ID'] = sampid
     return odf
 
+
 def bed_genome_match(bed: str, genome: str) -> bool:
     bedlist = []
     with open(bed, 'r') as bf:
@@ -706,6 +762,7 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 def ampliconstats_length(bed: str) -> int:
     amplicons = {}
