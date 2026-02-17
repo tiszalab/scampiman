@@ -11,62 +11,73 @@ from datetime import timedelta
 # since I'm logging, I need the same logger as in the main script
 logger = logging.getLogger("pct_logger")
 
-def pysam_cat(reads: str, ftype: str, outf: str):
+def shrimp_header(): 
+    print("\n🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+    +"🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+    +"🌊🦐🌊🌊🌊🦐🦐🦐🌊🦐🦐🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🦐🌊🌊🦐🌊\n"
+    +"🌊🦐🦐🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊🦐🌊\n"
+    +"🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🦐🌊🦐🌊🦐🦐🌊\n"
+    +"🌊🦐🦐🦐🌊🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🦐🌊\n"
+    +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n")
 
-    if ftype == "directory":
-        bam_list = []
-        for directory in reads.split():
-            for bam in os.listdir(directory):
-                if bam.endswith('.bam'):
-                    f = os.path.join(directory, bam)
 
-                    if os.path.isfile(f) and os.path.getsize(f) > 0:
-                        bam_list.append(f)
-
-    elif ftype == "files":
-        bam_list = []
-        for bam in reads.split():
-            if bam.endswith('.bam'):
-                f = os.path.abspath(bam)
-
-                if os.path.isfile(f) and os.path.getsize(f) > 0:
-                    bam_list.append(f)
-
-    pysam.samtools.cat(
-        '-o', outf,
-        *bam_list
-    )
-
-def shrimp_progress(total_reads: int, aligned_reads: int, time_taken: float, bar_width: int) -> None:
+def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float, bar_width: int, job: str) -> None:
     """Display a progress bar with a shrimp swimming across the terminal.
     
     Args:
-        total_reads: Total number of reads to align.
+        total_process: Total number of processes to complete.
+        elapsed_process: Number of processes completed.
+        time_taken: Time taken for the process.
         bar_width: Width of the progress bar in characters.
     """
-    if aligned_reads == 0:
-        print(f"\n🌊 Aligning {total_reads} reads with shrimp power! 🌊\n")
+    if job == "align":
+        if elapsed_process == 0:
+            print(f"\n🌊 Processing {total_process} reads with shrimp power! 🌊\n")
 
-    progress = aligned_reads / total_reads
-    shrimp_pos = int(progress * bar_width)
-    
-    # Build the progress bar
-    water_before = "~" * shrimp_pos
-    water_after = "~" * (bar_width - shrimp_pos)
-    
-    # Create the bar with shrimp at current position
-    bar = f"[{water_before}🦐{water_after}]"
-    
-    # Calculate percentage
-    percent = int(progress * 100)
-    # Print the progress bar (overwrite previous line)
-    sys.stdout.write(f"\r{bar} {percent:3d}% | {aligned_reads}/{total_reads} | {timedelta(seconds=time_taken)}")
-    sys.stdout.flush()
-    
-    if aligned_reads == total_reads - 1:
-        print("\n\n✨ Shrimp has arrived! Alignment complete! ✨\n")
-    elif aligned_reads < total_reads:
-        time.sleep(1)
+        progress = elapsed_process / total_process
+        shrimp_pos = int(progress * bar_width)
+        
+        # Build the progress bar
+        water_before = "~" * shrimp_pos
+        water_after = "~" * (bar_width - shrimp_pos)
+        
+        # Create the bar with shrimp at current position
+        bar = f"[{water_before}🦐{water_after}]"
+        
+        # Calculate percentage
+        percent = int(progress * 100)
+        # Print the progress bar (overwrite previous line)
+        sys.stdout.write(f"\r{bar} {percent:3d}% | Alignment | {timedelta(seconds=time_taken)}")
+        sys.stdout.flush()
+
+        if elapsed_process < total_process:
+            time.sleep(1)        
+        elif elapsed_process == total_process:
+            print(f"\r{bar} {percent:3d}% | Alignment ✔ | {timedelta(seconds=time_taken)}\n")
+        
+    elif job == "amp":
+
+        progress = elapsed_process / total_process
+        shrimp_pos = int(progress * bar_width)
+        
+        # Build the progress bar
+        water_before = "~" * shrimp_pos
+        water_after = "~" * (bar_width - shrimp_pos)
+        
+        # Create the bar with shrimp at current position
+        bar = f"[{water_before}🦐{water_after}]"
+        
+        # Calculate percentage
+        percent = int(progress * 100)
+        # Print the progress bar (overwrite previous line)
+        sys.stdout.write(f"\r{bar} {percent:3d}% | {elapsed_process}/{total_process} | {timedelta(seconds=time_taken)}\n")
+        sys.stdout.flush()
+        
+        if elapsed_process == total_process:
+            print(f"\r{bar} {percent:3d}% | {elapsed_process}/{total_process} ✔ | {timedelta(seconds=time_taken)}\n")
+            print("\n\n✨ Shrimp has arrived! Scampiman complete! ✨\n")
+        elif elapsed_process < total_process:
+            time.sleep(1)
 
 
 
@@ -129,9 +140,7 @@ def file_paths(reads: str, rfmt: str, rcon: str, intype: str):
                 r1_files[sample_key] = fpath # put into dictionary
             elif r2_match:
                 sample_key = r2_match.group(1) # file prefix
-                r2_files[sample_key] = fpath # put into dictionary
-        
-       
+                r2_files[sample_key] = fpath # put into dictionary      
         matched_r1 = []
         matched_r2 = []
         # look for the matching R1 and R2 files by key (file prefix) and add to the matched read1 and read2 list
@@ -191,6 +200,7 @@ def mappy_al_header(ref: str, rfmt:str, file_list: list):
 
     # add in the PG tag (gives details about mappy and which read files were used for alignment)
     sq_head['PG'].append({'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment', 'CL': ' '.join(file_list)})
+    logger.info(f"Total reads to align: {read_count}")
 
     return sq_head, read_count
 
@@ -444,20 +454,19 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
     
     # for scampiman progress bar
     multiplier = int(read_count / 50)
-    progress_list = [read_count * multiplier for read_count in range(0,50)]
-    progress_list.append(read_count - 1)
+    progress_list = [read_count * multiplier for read_count in range(1,50)]
+    progress_list.append(read_count)
     header_starttime = time.perf_counter()
+    shrimp_progress(read_count, flagstats['total_reads'], 0, 40, "align")
     if rfmt == "bam":
         for bam in file1:
             for i in pysam.AlignmentFile(bam, 'rb', check_sq=False):
+                flagstats['total_reads'] += 1
                 if flagstats['total_reads'] in progress_list:
                     header_endtime = time.perf_counter()
                     time_taken = header_endtime - header_starttime
-
-                    
-                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40)
-            
-                flagstats['total_reads'] += 1
+                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align")
+                
                 hits = list(aligner.map(i.query_sequence, cs=True, MD=True))
                 if not hits:
                     i.is_unmapped = True
@@ -495,9 +504,12 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
     elif rfmt == "fastq":
         for fastq in file1:
             for i in pysam.FastxFile(fastq):
-                if flagstats['total_reads'] in progress_list:
-                    shrimp_progress(read_count, flagstats['total_reads'], 40)
                 flagstats['total_reads'] += 1
+                if flagstats['total_reads'] in progress_list:
+                    header_endtime = time.perf_counter()
+                    time_taken = header_endtime - header_starttime
+                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align")
+
                 hits = list(aligner.map(i.sequence, cs=True, MD=True))
                 if not hits:
                     rec = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head))
@@ -549,22 +561,25 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
     flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0, 'read1':0, 'read2':0}
 
     files = file1 + file2
-    sq_head, read_count = mappy_al_header(ref, rfmt, files)
+    sq_head, read_count = mappy_al_header(ref, 'fastq', files)
+    obam = pysam.AlignmentFile(outf, 'wb', header=sq_head)
+    fbam = pysam.AlignmentFile(foutf, 'wb', header=sq_head)
 
     # for scampiman progress bar
     multiplier = int(read_count / 40)
     progress_list = [read_count * multiplier for read_count in range(0,40)]
     progress_list.append(read_count)
-
-    obam = pysam.AlignmentFile(outf, 'wb', header=sq_head)
-    fbam = pysam.AlignmentFile(foutf, 'wb', header=sq_head)
+    header_starttime = time.perf_counter()
+    shrimp_progress(read_count, flagstats['total_reads'], 0, 40, "align")
 
     for fastq1, fastq2 in zip(file1, file2):
         with pysam.FastxFile(fastq1) as fq1, pysam.FastxFile(fastq2) as fq2:
             for read1, read2 in zip(fq1, fq2):
-                if flagstats['total_reads'] in progress_list:
-                    shrimp_progress(read_count, flagstats['total_reads'], 40)
                 flagstats['total_reads'] += 2
+                if flagstats['total_reads'] in progress_list:
+                    header_endtime = time.perf_counter()
+                    time_taken = header_endtime - header_starttime
+                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align")
 
                 hits = list(aligner.map(read1.sequence, seq2=read2.sequence, cs=True, MD=True))
                 if not hits:
@@ -574,10 +589,11 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
                     rec2.query_sequence = read2.sequence
                     rec1.query_qualities = read1.quality
                     rec2.query_qualities = read2.quality
+                    rec1.query_name = read1.name
+                    rec2.query_name = read2.name
                     rec1.is_read1 = True
                     rec2.is_read2 = True
                     for i in [rec1, rec2]:
-                        i.query_name = read_name
                         i.is_unmapped = True
                         i.is_paired = True
                     fbam.write(rec1)
@@ -590,7 +606,6 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
                 if rec_list[0].is_qcfail:
                     flagstats['removed_reads_primary'] += 2
                     for rec in rec_list:
-                        print(rec)
                         fbam.write(rec)
                     continue
                     

@@ -113,7 +113,7 @@ def scampiman():
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
     #########################
-
+    #scaf.shrimp_header()
     ## make directories
     out_directory = os.path.join(str(args.c_workdir), str(args.OUTPUT_DIR))
 
@@ -204,8 +204,8 @@ def scampiman():
 
         elif str(args.rcon) == "paired-end":
             logger.info(f'> paired-end option ')
+            read1_list, read2_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
             try:
-                read1_list, read2_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
                 alignstats = scaf.mappy_al_paired(
                     #args.rfmt,
                     def_CPUs,
@@ -238,6 +238,9 @@ def scampiman():
     logger.info(f"> alignment step took {timedelta(seconds=time_taken)}")
 
     logger.info(f'Starting amplicon analysis.')
+    
+    amp_starttime = time.perf_counter()
+    #scaf.shrimp_progress(3, 0, 0, 40, "amp")
 
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
@@ -250,9 +253,11 @@ def scampiman():
                     ),
                 os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam') 
             )
-
+            amp_endtime = time.perf_counter()
+            time_taken = amp_endtime - amp_starttime
+            #scaf.shrimp_progress(3, 1, time_taken, 40, "amp")
             logger.info(f'ampclip')
-            logger.info(f'longest amplicon length: {scaf.ampliconstats_length(args.bed)%2}')
+            logger.info(f'longest amplicon length: {int(scaf.ampliconstats_length(args.bed)/2)}bp')
 
             pysam.samtools.ampliconclip(
                 '--both-ends',
@@ -265,8 +270,9 @@ def scampiman():
                     ),
                 os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')
             )
-
-
+            amp_endtime = time.perf_counter()
+            time_taken = amp_endtime - amp_starttime
+            #scaf.shrimp_progress(3, 2, time_taken, 40, "amp")
             pysam.samtools.ampliconstats(
                 '-@', str(def_CPUs),
                 '-l', str(scaf.ampliconstats_length(args.bed)),
@@ -281,6 +287,7 @@ def scampiman():
                     f'{str(args.SAMPLE)}.ampclip.bam'
                     )
             )
+
             logger.info(f"temp dir: {sca_temp}")
             logger.info(os.listdir(sca_temp))
 
@@ -302,6 +309,10 @@ def scampiman():
                 sep = "\t",
                 index=False
             )
+
+            amp_endtime = time.perf_counter()
+            time_taken = amp_endtime - amp_starttime            
+            #scaf.shrimp_progress(3, 3, time_taken, 40, "amp")
 
         except Exception as e:
             logger.error("Amplicon Analysis ERROR: ")
