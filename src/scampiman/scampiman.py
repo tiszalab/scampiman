@@ -102,8 +102,8 @@ def scampiman():
     logger = logging.getLogger("pct_logger")
     logger.setLevel(logging.DEBUG)
     # stream gets printed to terminal
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
+    #stream_handler = logging.StreamHandler()
+    #stream_handler.setLevel(logging.DEBUG)
 
     # file gets saved to a specified file
     file_handler = logging.FileHandler(os.path.join(def_workdir, 
@@ -111,9 +111,11 @@ def scampiman():
     file_handler.setLevel(logging.DEBUG)
 
     logger.addHandler(file_handler)
-    logger.addHandler(stream_handler)
+    #logger.addHandler(stream_handler)
     #########################
-    #scaf.shrimp_header()
+    # get console width    
+    scaf.shrimp_header(__version__)
+    
     ## make directories
     out_directory = os.path.join(str(args.c_workdir), str(args.OUTPUT_DIR))
 
@@ -157,31 +159,36 @@ def scampiman():
         logger.error("Exiting.")
         sys.exit()
 
-    align_starttime = time.perf_counter()
-
-    logger.info(f'Starting alignment.')
-
     READ_STR = ' '.join(map(str,args.READS))
     logger.info(f'read string: ')
     logger.info(f'{READ_STR}')
 
+    align_starttime = time.perf_counter()
+    logger.info(f'Starting alignment.')
     
     # run main pipeline
     try:
         if str(args.rfmt) == "bam":
             logger.info(f'> bam option ')
+            print(f"🦐 bam option ")
         elif str(args.rfmt) == "fastq":
             logger.info(f'> fastq option ')
-        
+            print(f"🦐 fastq option ")
         if str(args.intype) == "files":
             logger.info(f'> files option ')
+            print(f"🦐 files option ")
         elif str(args.intype) == "directory":
             logger.info(f'> directory option ')
+            print(f"🦐 directory option ")
 
         if str(args.rcon) == "single-end":
             logger.info(f'> single-end option ')
-            reads_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
+            print(f"🦐 single-end reads ")
+            print(f"✨ Let's go! ✨")
             try:
+                scaf.shrimp_progress(1, 0, 0, "preprocessing")
+                reads_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
+
                 alignstats = scaf.mappy_al_single(
                     args.rfmt,
                     def_CPUs,
@@ -200,12 +207,17 @@ def scampiman():
                     index=False
                 )
             except:
-                logger.error("Failed to align read files.")
+                logger.error("Failed to align single-end read files.")
 
         elif str(args.rcon) == "paired-end":
             logger.info(f'> paired-end option ')
-            read1_list, read2_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
+            print(f"🦐 paired-end reads ")
+            print(f"✨✨ Let's go 😎 ✨✨")
+
             try:
+                scaf.shrimp_progress(2, 0, 0, "preprocessing")
+                read1_list, read2_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
+
                 alignstats = scaf.mappy_al_paired(
                     #args.rfmt,
                     def_CPUs,
@@ -225,7 +237,7 @@ def scampiman():
                     index=False
                 )            
             except:
-                logger.error("Failed to align read files.")
+                logger.error("Failed to align paired-end read files.")
 
     except Exception as e:
         logger.error("Read Alignment ERROR: ")
@@ -240,7 +252,7 @@ def scampiman():
     logger.info(f'Starting amplicon analysis.')
     
     amp_starttime = time.perf_counter()
-    #scaf.shrimp_progress(3, 0, 0, 40, "amp")
+    scaf.shrimp_progress(3, 0, 0, "amp")
 
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
@@ -255,7 +267,7 @@ def scampiman():
             )
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime
-            #scaf.shrimp_progress(3, 1, time_taken, 40, "amp")
+            scaf.shrimp_progress(3, 1, time_taken, "amp")
             logger.info(f'ampclip')
             logger.info(f'longest amplicon length: {int(scaf.ampliconstats_length(args.bed)/2)}bp')
 
@@ -272,7 +284,7 @@ def scampiman():
             )
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime
-            #scaf.shrimp_progress(3, 2, time_taken, 40, "amp")
+            scaf.shrimp_progress(3, 2, time_taken, "amp")
             pysam.samtools.ampliconstats(
                 '-@', str(def_CPUs),
                 '-l', str(scaf.ampliconstats_length(args.bed)),
@@ -312,7 +324,7 @@ def scampiman():
 
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime            
-            #scaf.shrimp_progress(3, 3, time_taken, 40, "amp")
+            scaf.shrimp_progress(3, 3, time_taken, "amp")
 
         except Exception as e:
             logger.error("Amplicon Analysis ERROR: ")

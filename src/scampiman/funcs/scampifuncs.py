@@ -11,20 +11,31 @@ from datetime import timedelta
 # since I'm logging, I need the same logger as in the main script
 logger = logging.getLogger("pct_logger")
 
-def shrimp_header(): 
-    print("\n🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
-    +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🦐🦐🌊🦐🌊🌊🌊🦐🌊🦐🦐🦐🦐🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
-    +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🌊🦐🌊🦐🦐🌊🦐🦐🌊🦐🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
-    +"🌊🌊🦐🦐🦐🌊🦐🦐🦐🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🦐🌊🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊\n"
-    +"🌊🦐🌊🌊🌊🌊🦐🌊🌊🌊🦐🦐🦐🦐🌊🦐🌊🌊🌊🦐🌊🦐🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🦐🌊\n"
-    +"🌊🌊🦐🦐🌊🌊🦐🌊🌊🌊🦐🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🦐🌊🦐🦐🌊🦐🌊\n"
-    +"🌊🌊🌊🌊🦐🌊🦐🦐🦐🌊🦐🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊\n"
-    +"🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🦐🌊🌊🦐🌊\n"
-     "🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
-     "🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n")
+def shrimp_header(version: str): 
+    
+    terminal_size = shutil.get_terminal_size()
+    console_width = terminal_size.columns
 
+    if console_width >= 80:
 
-def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float, bar_width: int, job: str) -> None:
+        print("\n🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+        +"🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+        +"🌊🌊🌊🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+        +"🌊🌊🦐🦐🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊\n"
+        +"🌊🦐🌊🌊🌊🦐🌊🌊🦐🦐🦐🌊🦐🌊🌊🌊🦐🌊🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🦐🌊\n"
+        +"🌊🌊🦐🌊🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🦐🌊🦐🦐🌊🦐🌊\n"
+        +"🌊🌊🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🌊🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊\n"
+        +"🌊🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🦐🌊🌊🦐🌊\n"
+        +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+        +"🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊" 
+        + f"v{version}" + "🌊\n")
+
+    else:
+        print("🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n"
+        +"🌊🌊 scampiman - " + f"v{version}" + " 🌊🌊\n"
+        +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n")
+
+def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float, job: str) -> None:
     """Display a progress bar with a shrimp swimming across the terminal.
     
     Args:
@@ -33,11 +44,30 @@ def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float,
         time_taken: Time taken for the process.
         bar_width: Width of the progress bar in characters.
     """
-    if job == "align":
+
+    terminal_size = shutil.get_terminal_size()
+    console_width = terminal_size.columns
+
+    progress = elapsed_process / total_process
+    
+    # Calculate percentage
+    percent = int(progress * 100)
+
+    if job == "preprocessing":
+        if elapsed_process <= 0:
+            sys.stdout.write(f"🌊  Pulling in reads 🌊")
+            sys.stdout.flush()
+        if elapsed_process == total_process:
+            sys.stdout.write(f"  Counting reads  🌊\n")
+            sys.stdout.flush()
+        if elapsed_process <= total_process:
+            time.sleep(1)
+
+    elif job == "align":
         if elapsed_process == 0:
             print(f"\n🌊 Processing {total_process} reads with shrimp power! 🌊\n")
 
-        progress = elapsed_process / total_process
+        bar_width = abs(console_width - 40)
         shrimp_pos = int(progress * bar_width)
         
         # Build the progress bar
@@ -46,41 +76,36 @@ def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float,
         
         # Create the bar with shrimp at current position
         bar = f"[{water_before}🦐{water_after}]"
-        
-        # Calculate percentage
-        percent = int(progress * 100)
+
+
         # Print the progress bar (overwrite previous line)
         sys.stdout.write(f"\r{bar} {percent:3d}% | Alignment | {timedelta(seconds=time_taken)}")
         sys.stdout.flush()
 
-        if elapsed_process < total_process:
-            time.sleep(1)        
-        elif elapsed_process == total_process:
+        if elapsed_process == total_process:
             print(f"\r{bar} {percent:3d}% | Alignment ✔ | {timedelta(seconds=time_taken)}\n")
-        
-    elif job == "amp":
 
-        progress = elapsed_process / total_process
+    elif job == "amp":
+        bar_width = abs(console_width - 48)
         shrimp_pos = int(progress * bar_width)
-        
+
         # Build the progress bar
         water_before = "~" * shrimp_pos
         water_after = "~" * (bar_width - shrimp_pos)
         
         # Create the bar with shrimp at current position
         bar = f"[{water_before}🦐{water_after}]"
-        
-        # Calculate percentage
-        percent = int(progress * 100)
+
         # Print the progress bar (overwrite previous line)
-        sys.stdout.write(f"\r{bar} {percent:3d}% | Amplicon Analysis | {timedelta(seconds=time_taken)}\n")
+        sys.stdout.write(f"\r{bar} {percent:3d}% | Amplicon Analysis | {timedelta(seconds=time_taken)}")
         sys.stdout.flush()
-        
+
         if elapsed_process == total_process:
             print(f"\r{bar} {percent:3d}% | Amplicon Analysis ✔ | {timedelta(seconds=time_taken)}\n")
             print("\n\n✨ Shrimp has arrived! Scampiman complete! ✨\n")
-        elif elapsed_process < total_process:
-            time.sleep(1)
+
+    if elapsed_process < total_process:
+        time.sleep(1)        
 
 
 
@@ -469,6 +494,7 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
         file1: list of files to align
         Returns: alignment stats as pandas dataframe
     """
+    shrimp_progress(1, 1, 0, "preprocessing") # start progress bar
     aligner = mappy_al_ref(ref, tech, cpus) # create aligner
     flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0} # create flagstats dictionary
     sq_head, read_count = mappy_al_header(ref, rfmt, file1) # create header and get totalcount of reads
@@ -480,7 +506,7 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
     progress_list = [read_count * multiplier for read_count in range(1,50)] # create list of read counts to update progress bar based on multiplier
     progress_list.append(read_count) # add total number of reads to progress list
     header_starttime = time.perf_counter() # start timer for progress bar
-    shrimp_progress(read_count, flagstats['total_reads'], 0, 40, "align") # start progress bar
+    shrimp_progress(read_count, flagstats['total_reads'], 0, "align") # start progress bar
     if rfmt == "bam":
         for bam in file1:
             for i in pysam.AlignmentFile(bam, 'rb', check_sq=False):
@@ -489,7 +515,7 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
                 if flagstats['total_reads'] in progress_list: 
                     header_endtime = time.perf_counter()
                     time_taken = header_endtime - header_starttime
-                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align")
+                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, "align")
                 
                 hits = list(aligner.map(i.query_sequence, cs=True, MD=True)) # get alignment hits
 
@@ -540,7 +566,7 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
                 if flagstats['total_reads'] in progress_list:
                     header_endtime = time.perf_counter() # end timer for progress bar
                     time_taken = header_endtime - header_starttime # calculate time taken
-                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align") # update progress bar
+                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, "align") # update progress bar
 
                 # get alignment hits
                 hits = list(aligner.map(i.sequence, cs=True, MD=True)) # mappy mapping
@@ -607,6 +633,7 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
         file2: list of read 2 files to align
         Returns: alignment stats as pandas dataframe
     """
+    shrimp_progress(1, 1, 0, "preprocessing") # start progress bar
     aligner = mappy_al_ref(ref, tech, cpus) # create aligner
     flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0, 'read1':0, 'read2':0} # create flagstats dictionary
 
@@ -620,7 +647,7 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
     progress_list = [read_count * multiplier for read_count in range(1,50)] # create list of read counts to update progress bar based on multiplier
     progress_list.append(read_count) # add total number of reads to progress list
     header_starttime = time.perf_counter() # start timer for progress bar
-    shrimp_progress(read_count, flagstats['total_reads'], 0, 40, "align") # start progress bar
+    shrimp_progress(read_count, flagstats['total_reads'], 0, "align") # start progress bar
 
     # align reads
     for fastq1, fastq2 in zip(file1, file2): # zip file1 and file2 to be processed in parallel
@@ -632,7 +659,7 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
                 if flagstats['total_reads'] in progress_list: 
                     header_endtime = time.perf_counter()
                     time_taken = header_endtime - header_starttime
-                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, 40, "align")
+                    shrimp_progress(read_count, flagstats['total_reads'], time_taken, "align")
                 
                 # get alignment hits
                 hits = list(aligner.map(read1.sequence, seq2=read2.sequence, cs=True, MD=True)) # mappy mapping
@@ -795,6 +822,12 @@ def ampliconstats_length(bed: str) -> int:
                 'right_end': coords['right_end'],
                 'length': length
             }
+    if longest is None:
+        raise ValueError('No complete amplicon pairs found in BED file')
+    #max_length += 50
+    return max_length * 2
+
+
     if longest is None:
         raise ValueError('No complete amplicon pairs found in BED file')
     #max_length += 50

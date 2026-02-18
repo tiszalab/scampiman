@@ -3,8 +3,7 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - bioconda::minimap2
+  - bioconda::mappy
   - bioconda::pysam
-  - bioconda::samtools
   - conda-forge::pandas
   - python
