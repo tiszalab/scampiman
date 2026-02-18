@@ -11,9 +11,11 @@ A pipeline to align and summarize tiled amplicon coverage (of a virus, probably)
     `file(s)` or `directory` (with files)
  - Seq tech
     `illumina short read` or `ONT`
+ - Read config
+    `single-end` or `paired-end`
 
-1) Align reads to reference (`dorado aligner` or `minimap2`)
-2) samtools: view, sort, ampliconclip, ampliconstats
+1) Align reads to reference (`mappy`)
+2) pysam: sort, ampliconclip, ampliconstats
 3) Parse ampliconstats output into table, output `.tsv`
 
 
@@ -48,7 +50,7 @@ From the terminal:
 With a directory of unaligned `.bam` files from an ONT run:
 
 ```bash
-scampiman -r proj1/bam_pass/barcode24 -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s barcode24 -o proj1_scampi -f bam -t directory --seqtech ont --temp $TMPDIR
+scampiman -r proj1/bam_pass/barcode24 -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s barcode24 -o proj1_scampi -f bam -t directory --seqtech ont  --temp $TMPDIR
 ```
 
 With some unaligned `.bam` files from an ONT run:
@@ -76,15 +78,11 @@ This needs an index file in `.xlsx` format with (at least) the following header 
 Rscript scampiman/plot_script/plot_scampiman_batch1.R scampi_projects my_amplicons_projs1to4.pdf
 ```
 
-# Other
-
-`Dorado`, from ONT, is required but is only distributed as a binary. I used `v0.9.1`. Assumes `Dorado` in PATH.
-The install instructions can be found [here](https://github.com/nanoporetech/dorado?tab=readme-ov-file#installation).
 
 terminal commmand used to create `scampiman` conda environment:
 
 ```
-$ conda create -n scampiman -c conda-forge -c bioconda python bioconda::minimap2 bioconda::samtools bioconda::pysam conda-forge::pandas 
+$ conda create -n scampiman -c conda-forge -c bioconda python bioconda::mappy bioconda::pysam conda-forge::pandas 
 ```
 
 terminal command to add `R` plotting capabilities 

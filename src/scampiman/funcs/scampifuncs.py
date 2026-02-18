@@ -109,7 +109,7 @@ def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float,
 
 
 
-def file_paths(reads: str, rfmt: str, rcon: str, intype: str):
+def file_paths(reads: list, rfmt: str, rcon: str, intype: str):
     """ Makes a list of paths to  input files from a string. 
     This is mostly for finding the files within a directory and/or return matching R1 and R2 files.
     If intype is "files" and the rcon is "single-end", it will just return a list version of the "reads" string.
@@ -128,7 +128,7 @@ def file_paths(reads: str, rfmt: str, rcon: str, intype: str):
         extensions = ('.fastq', '.fq', '.fastq.gz', '.fq.gz')
     # find the files with file extensions in directories
     if intype == "directory":
-        for directory in reads.split():
+        for directory in reads:
             for file in os.listdir(directory):
                 if file.endswith(extensions):
                     f = os.path.join(directory, file)
@@ -136,7 +136,7 @@ def file_paths(reads: str, rfmt: str, rcon: str, intype: str):
                         file_list.append(f)
     # if string of files given, filter for file extensions and put into list
     elif intype == "files": 
-        for file in reads.split():
+        for file in reads:
             if file.endswith(extensions):
                 f = os.path.abspath(file)
                 if os.path.isfile(f) and os.path.getsize(f) > 0:
@@ -145,6 +145,7 @@ def file_paths(reads: str, rfmt: str, rcon: str, intype: str):
                     logger.info(f"File {file} excluded; Does not exist or is empty.") 
             else:
                 logger.info(f"File {file} excluded; Does not end with {extensions}") 
+
     # if single-end, return the list of files
     if rcon == "single-end":
         logger.info(f"Single-end files: {file_list}")
@@ -824,12 +825,5 @@ def ampliconstats_length(bed: str) -> int:
             }
     if longest is None:
         raise ValueError('No complete amplicon pairs found in BED file')
-    #max_length += 50
-    return max_length * 2
-
-
-    if longest is None:
-        raise ValueError('No complete amplicon pairs found in BED file')
-    #max_length += 50
     return max_length * 2
 

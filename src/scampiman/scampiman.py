@@ -27,13 +27,11 @@ def scampiman():
     # I like to keep this print statement for debugging
     print(f"this script dir: {os.path.dirname(__file__) }")
 
-    __version__ = "0.0.3"
+    __version__ = "0.1.3"
 
     toolname = "scampiman"
 
     # this variable isn't used in this template, but it's useful for almost all bioinformatics
-    def_CPUs = os.cpu_count()
-
     def_workdir = os.getcwd()
 
     parser = argparse.ArgumentParser(prog=f'{toolname}',
@@ -78,7 +76,10 @@ def scampiman():
                         choices=['files', 'directory'],
                         help='read file format'
                         )
-
+    parser.add_argument("-@", "--cpus",
+                        dest="cpus", type=int,
+                        help='number of cpus to use'
+                        )
     parser.add_argument("--seqtech", dest="SEQTECH",
                         default='ont', 
                         choices=['illumina', 'ont'],
@@ -102,8 +103,8 @@ def scampiman():
     logger = logging.getLogger("pct_logger")
     logger.setLevel(logging.DEBUG)
     # stream gets printed to terminal
-    #stream_handler = logging.StreamHandler()
-    #stream_handler.setLevel(logging.DEBUG)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.ERROR)
 
     # file gets saved to a specified file
     file_handler = logging.FileHandler(os.path.join(def_workdir, 
@@ -111,13 +112,18 @@ def scampiman():
     file_handler.setLevel(logging.DEBUG)
 
     logger.addHandler(file_handler)
-    #logger.addHandler(stream_handler)
+    logger.addHandler(stream_handler)
     #########################
     # get console width    
     scaf.shrimp_header(__version__)
     
     ## make directories
     out_directory = os.path.join(str(args.c_workdir), str(args.OUTPUT_DIR))
+
+    if not args.cpus:
+        def_CPUs = os.cpu_count()
+    else:
+        def_CPUs = args.cpus
 
     if not os.path.isdir(out_directory):
         os.makedirs(out_directory)
@@ -159,9 +165,9 @@ def scampiman():
         logger.error("Exiting.")
         sys.exit()
 
-    READ_STR = ' '.join(map(str,args.READS))
+    #READ_STR = ' '.join(map(str,args.READS))
     logger.info(f'read string: ')
-    logger.info(f'{READ_STR}')
+    logger.info(f'{args.READS}')
 
     align_starttime = time.perf_counter()
     logger.info(f'Starting alignment.')
@@ -187,7 +193,7 @@ def scampiman():
             print(f"✨ Let's go! ✨")
             try:
                 scaf.shrimp_progress(1, 0, 0, "preprocessing")
-                reads_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
+                reads_list = scaf.file_paths(args.READS, args.rfmt, args.rcon, args.intype)
 
                 alignstats = scaf.mappy_al_single(
                     args.rfmt,
@@ -216,7 +222,7 @@ def scampiman():
 
             try:
                 scaf.shrimp_progress(2, 0, 0, "preprocessing")
-                read1_list, read2_list = scaf.file_paths(READ_STR, args.rfmt, args.rcon, args.intype)
+                read1_list, read2_list = scaf.file_paths(args.READS, args.rfmt, args.rcon, args.intype)
 
                 alignstats = scaf.mappy_al_paired(
                     #args.rfmt,
@@ -252,10 +258,10 @@ def scampiman():
     logger.info(f'Starting amplicon analysis.')
     
     amp_starttime = time.perf_counter()
-    scaf.shrimp_progress(3, 0, 0, "amp")
 
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
+            scaf.shrimp_progress(3, 0, 0, "amp")
 
             logger.info(f'samcov')
             pysam.samtools.coverage(
