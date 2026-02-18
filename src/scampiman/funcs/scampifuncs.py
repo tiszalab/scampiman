@@ -632,7 +632,7 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
         foutf: output file for failed reads
         file1: list of read 1 files to align
         file2: list of read 2 files to align
-        Returns: alignment stats as pandas dataframe
+        Returns: alignment summary stats as pandas dataframe
     """
     shrimp_progress(1, 1, 0, "preprocessing") # start progress bar
     aligner = mappy_al_ref(ref, tech, cpus) # create aligner

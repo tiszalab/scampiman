@@ -3,7 +3,7 @@ A pipeline to align and summarize tiled amplicon coverage (of a virus, probably)
 
 **Requires: Reads, Reference Genome(s), Primer `.bed` File**
 
-**Produces: Samtools Ampliconstats File, Table of Amplicon Coverage `.tsv`**
+**Produces: Alignment Summary, Samtools Ampliconstats File, Table of Amplicon Coverage `.tsv`**
 
  - Input formats
     `.fastq` or `.bam`
@@ -14,7 +14,7 @@ A pipeline to align and summarize tiled amplicon coverage (of a virus, probably)
  - Read config
     `single-end` or `paired-end`
 
-1) Align reads to reference (`mappy`)
+1) Align reads to reference (`mappy`) and filter unwanted alignments
 2) pysam: sort, ampliconclip, ampliconstats
 3) Parse ampliconstats output into table, output `.tsv`
 

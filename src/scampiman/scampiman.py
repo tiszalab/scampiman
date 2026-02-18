@@ -207,7 +207,7 @@ def scampiman():
                 alignstats.to_csv(
                     os.path.join(
                         args.OUTPUT_DIR,
-                        f'{str(args.SAMPLE)}.alignmentstats.tsv'
+                        f'{str(args.SAMPLE)}.summarystats.tsv'
                     ),
                     sep = "\t",
                     index=False
@@ -237,7 +237,7 @@ def scampiman():
                 alignstats.to_csv(
                     os.path.join(
                         args.OUTPUT_DIR,
-                        f'{str(args.SAMPLE)}.alignmentstats.tsv'
+                        f'{str(args.SAMPLE)}.summarystats.tsv'
                     ),
                     sep = "\t",
                     index=False
@@ -338,7 +338,7 @@ def scampiman():
 
     logger.info(f"### scampiman outputs: ")
     for fin in [
-        f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.alignmentstats.tsv',
+        f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.summarystats.tsv',
         f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.amplicontable.tsv',
         f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv',
         f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.samcov.tsv'
