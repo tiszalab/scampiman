@@ -167,20 +167,23 @@ def mappy_al_ref(ref: str, tech: str, cpus:int):
 def mappy_al_header(ref: str, rfmt:str, file_list: list):
     """Make a header for the alignment file."""
     read_count = 0
+    fasta = pysam.FastaFile(ref)
     sq_head = pysam.AlignmentHeader(
     ).from_references(
-        reference_names=pysam.FastaFile(ref).references, 
-        reference_lengths=pysam.FastaFile(ref).lengths
+        reference_names=fasta.references, 
+        reference_lengths=fasta.lengths
         ).to_dict()
+    fasta.close()
     sq_head['PG'] = []
     if rfmt == "bam":
         for file in file_list:
-            #bam = pysam.AlignmentFile(file, 'rb', check_sq=False)
-            read_count += pysam.AlignmentFile(file, 'rb', check_sq=False).count(until_eof=True)
+            bam = pysam.AlignmentFile(file, 'rb', check_sq=False)
+            read_count += bam.count(until_eof=True)
             if len(sq_head) == 2: # the only thing in the freshly made header is the SQ tag and an empty PG tag
-                sq_head = pysam.AlignmentFile(file, 'rb', check_sq=False).header.to_dict() | sq_head # combine the headers
+                sq_head = bam.header.to_dict() | sq_head # combine the headers
             else: # if the header has already been combined
-                sq_head['RG'] += pysam.AlignmentFile(file, 'rb', check_sq=False).header.to_dict()['RG'] # add in the RG tag just incase smaples were from different runs
+                sq_head['RG'] += bam.header.to_dict()['RG'] # add in the RG tag just incase smaples were from different runs
+            bam.close()
         # get rid of duplicate RG tags from looping
         g = list({frozenset(d.items()) for d in sq_head['RG']}) # convert the list into a set to remove duplicates
         g = [dict(f) for f in g] # Convert back to dictionaries
@@ -194,19 +197,19 @@ def mappy_al_header(ref: str, rfmt:str, file_list: list):
     sq_head['PG'].append({'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment', 'CL': ' '.join(file_list)})
     logger.info(f"Total reads to align: {read_count}")
 
-    return sq_head, read_count
+    sq_head_obj = pysam.AlignmentHeader.from_dict(sq_head)
+    return sq_head_obj, read_count
 
 
 
-def mappy_hits_bam_fmt_single(q: dict, hits: list, header_dict: dict):
+def mappy_hits_bam_fmt_single(q: dict, hits: list, sq_head: pysam.AlignmentHeader):
     """Format mappy hits to bam format for 'single-end' reads
     
     Args:
         q: query dictionary (read name, sequence, quality/qscore string)
         hits: list of mappy hits
-        header_dict: header dictionary from mappy_al_header or pysam.AlignmentHeader.from_dict()
+        sq_head: pysam.AlignmentHeader object from mappy_al_header
     """
-    sq_head = pysam.AlignmentHeader.from_dict(header_dict)
     recs_list = []
     sa_tags = []
     tags = []
@@ -303,15 +306,14 @@ def mappy_hits_bam_fmt_single(q: dict, hits: list, header_dict: dict):
     return recs_list, tags, sa_tags
 
 
-def mappy_hits_bam_fmt_paired(q: dict, hits: list, header_dict: dict):
+def mappy_hits_bam_fmt_paired(q: dict, hits: list, sq_head: pysam.AlignmentHeader):
     """Format mappy hits to bam format for 'paired-end' reads
     
     Args:
         q: query dictionary (read1 name, read2 name, read1 sequence, read2 sequence, read1 quality/qscore string, read2 quality/qscore string)
         hits: list of mappy hits
-        header_dict: header dictionary from mappy_al_header or pysam.AlignmentHeader.from_dict()
+        sq_head: pysam.AlignmentHeader object from mappy_al_header
     """
-    sq_head = pysam.AlignmentHeader.from_dict(header_dict)
     rec_list = []
     hit_r1 = []
     hit_r2 = []
@@ -536,7 +538,7 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
 
                 # if no hits, write to failed BAM file
                 if not hits:
-                    rec = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head)) # make an alignedsegment object
+                    rec = pysam.AlignedSegment(header=sq_head) # make an alignedsegment object
                     rec.query_sequence = i.sequence # set query sequence
                     rec.query_qualities = i.quality # set query qualities
                     rec.query_name = i.name # set query name
@@ -630,7 +632,7 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
                 # if no hits, write to failed BAM file
                 if not hits:
                     for u in [read1, read2]:
-                        rec = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head)) # make an alignedsegment object
+                        rec = pysam.AlignedSegment(header=sq_head) # make an alignedsegment object
                         rec.query_sequence = u.sequence # set query sequence
                         rec.query_qualities = u.quality # set query qualities
                         rec.query_name = u.name # set query name
