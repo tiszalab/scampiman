@@ -36,76 +36,38 @@ def shrimp_header(version: str):
         +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n")
 
 def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float, job: str) -> None:
-    """Display a progress bar with a shrimp swimming across the terminal.
+    """Display a lightweight progress indicator with a shrimp emoji.
     
     Args:
         total_process: Total number of processes to complete.
         elapsed_process: Number of processes completed.
-        time_taken: Time taken for the process.
-        bar_width: Width of the progress bar in characters.
+        time_taken: Time taken so far in seconds.
+        job: One of "preprocessing", "align", or "amp".
     """
-
-    terminal_size = shutil.get_terminal_size()
-    console_width = terminal_size.columns
-
-    progress = elapsed_process / total_process
-    
-    # Calculate percentage
-    percent = int(progress * 100)
+    percent = int(elapsed_process / total_process * 100) if total_process else 0
 
     if job == "preprocessing":
         if elapsed_process <= 0:
-            sys.stdout.write(f"🌊  Pulling in reads 🌊")
-            sys.stdout.flush()
-        if elapsed_process == total_process:
-            sys.stdout.write(f"  Counting reads  🌊\n")
-            sys.stdout.flush()
-        if elapsed_process <= total_process:
-            time.sleep(1)
-
+            print("🌊  Pulling in reads 🌊  Counting reads  🌊")
     elif job == "align":
         if elapsed_process == 0:
             print(f"\n🌊 Processing {total_process} reads with shrimp power! 🌊\n")
-
-        bar_width = abs(console_width - 40)
-        shrimp_pos = int(progress * bar_width)
-        
-        # Build the progress bar
-        water_before = "~" * shrimp_pos
-        water_after = "~" * (bar_width - shrimp_pos)
-        
-        # Create the bar with shrimp at current position
-        bar = f"[{water_before}🦐{water_after}]"
-
-
-        # Print the progress bar (overwrite previous line)
-        sys.stdout.write(f"\r{bar} {percent:3d}% | Alignment | {timedelta(seconds=time_taken)}")
-        sys.stdout.flush()
-
-        if elapsed_process == total_process:
-            print(f"\r{bar} {percent:3d}% | Alignment ✔ | {timedelta(seconds=time_taken)}\n")
-
+        else:
+            td = timedelta(seconds=int(time_taken))
+            done = elapsed_process == total_process
+            mark = " ✔" if done else ""
+            sys.stdout.write(f"\r🦐 {percent:3d}% | Alignment{mark} | {td}  ")
+            if done:
+                sys.stdout.write("\n")
+            sys.stdout.flush()
     elif job == "amp":
-        bar_width = abs(console_width - 48)
-        shrimp_pos = int(progress * bar_width)
-
-        # Build the progress bar
-        water_before = "~" * shrimp_pos
-        water_after = "~" * (bar_width - shrimp_pos)
-        
-        # Create the bar with shrimp at current position
-        bar = f"[{water_before}🦐{water_after}]"
-
-        # Print the progress bar (overwrite previous line)
-        sys.stdout.write(f"\r{bar} {percent:3d}% | Amplicon Analysis | {timedelta(seconds=time_taken)}")
-        sys.stdout.flush()
-
-        if elapsed_process == total_process:
-            print(f"\r{bar} {percent:3d}% | Amplicon Analysis ✔ | {timedelta(seconds=time_taken)}\n")
-            print("\n\n✨ Shrimp has arrived! Scampiman complete! ✨\n")
-
-    if elapsed_process < total_process:
-        time.sleep(1)        
+        td = timedelta(seconds=int(time_taken))
+        done = elapsed_process == total_process
+        mark = " ✔" if done else ""
+        sys.stdout.write(f"\r🦐 {percent:3d}% | Amplicon Analysis{mark} | {td}  ")
+        if done:
+            sys.stdout.write("\n\n\n✨ Shrimp has arrived! Scampiman complete! ✨\n\n")
+        sys.stdout.flush() 
 
 
 
@@ -205,20 +167,23 @@ def mappy_al_ref(ref: str, tech: str, cpus:int):
 def mappy_al_header(ref: str, rfmt:str, file_list: list):
     """Make a header for the alignment file."""
     read_count = 0
+    fasta = pysam.FastaFile(ref)
     sq_head = pysam.AlignmentHeader(
     ).from_references(
-        reference_names=pysam.FastaFile(ref).references, 
-        reference_lengths=pysam.FastaFile(ref).lengths
+        reference_names=fasta.references, 
+        reference_lengths=fasta.lengths
         ).to_dict()
+    fasta.close()
     sq_head['PG'] = []
     if rfmt == "bam":
         for file in file_list:
-            #bam = pysam.AlignmentFile(file, 'rb', check_sq=False)
-            read_count += pysam.AlignmentFile(file, 'rb', check_sq=False).count(until_eof=True)
+            bam = pysam.AlignmentFile(file, 'rb', check_sq=False)
+            read_count += bam.count(until_eof=True)
             if len(sq_head) == 2: # the only thing in the freshly made header is the SQ tag and an empty PG tag
-                sq_head = pysam.AlignmentFile(file, 'rb', check_sq=False).header.to_dict() | sq_head # combine the headers
+                sq_head = bam.header.to_dict() | sq_head # combine the headers
             else: # if the header has already been combined
-                sq_head['RG'] += pysam.AlignmentFile(file, 'rb', check_sq=False).header.to_dict()['RG'] # add in the RG tag just incase smaples were from different runs
+                sq_head['RG'] += bam.header.to_dict()['RG'] # add in the RG tag just incase smaples were from different runs
+            bam.close()
         # get rid of duplicate RG tags from looping
         g = list({frozenset(d.items()) for d in sq_head['RG']}) # convert the list into a set to remove duplicates
         g = [dict(f) for f in g] # Convert back to dictionaries
@@ -232,19 +197,19 @@ def mappy_al_header(ref: str, rfmt:str, file_list: list):
     sq_head['PG'].append({'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment', 'CL': ' '.join(file_list)})
     logger.info(f"Total reads to align: {read_count}")
 
-    return sq_head, read_count
+    sq_head_obj = pysam.AlignmentHeader.from_dict(sq_head)
+    return sq_head_obj, read_count
 
 
 
-def mappy_hits_bam_fmt_single(q: dict, hits: list, header_dict: dict):
+def mappy_hits_bam_fmt_single(q: dict, hits: list, sq_head: pysam.AlignmentHeader):
     """Format mappy hits to bam format for 'single-end' reads
     
     Args:
         q: query dictionary (read name, sequence, quality/qscore string)
         hits: list of mappy hits
-        header_dict: header dictionary from mappy_al_header or pysam.AlignmentHeader.from_dict()
+        sq_head: pysam.AlignmentHeader object from mappy_al_header
     """
-    sq_head = pysam.AlignmentHeader.from_dict(header_dict)
     recs_list = []
     sa_tags = []
     tags = []
@@ -341,15 +306,14 @@ def mappy_hits_bam_fmt_single(q: dict, hits: list, header_dict: dict):
     return recs_list, tags, sa_tags
 
 
-def mappy_hits_bam_fmt_paired(q: dict, hits: list, header_dict: dict):
+def mappy_hits_bam_fmt_paired(q: dict, hits: list, sq_head: pysam.AlignmentHeader):
     """Format mappy hits to bam format for 'paired-end' reads
     
     Args:
         q: query dictionary (read1 name, read2 name, read1 sequence, read2 sequence, read1 quality/qscore string, read2 quality/qscore string)
         hits: list of mappy hits
-        header_dict: header dictionary from mappy_al_header or pysam.AlignmentHeader.from_dict()
+        sq_head: pysam.AlignmentHeader object from mappy_al_header
     """
-    sq_head = pysam.AlignmentHeader.from_dict(header_dict)
     rec_list = []
     hit_r1 = []
     hit_r2 = []
@@ -574,7 +538,7 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
 
                 # if no hits, write to failed BAM file
                 if not hits:
-                    rec = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head)) # make an alignedsegment object
+                    rec = pysam.AlignedSegment(header=sq_head) # make an alignedsegment object
                     rec.query_sequence = i.sequence # set query sequence
                     rec.query_qualities = i.quality # set query qualities
                     rec.query_name = i.name # set query name
@@ -668,7 +632,7 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
                 # if no hits, write to failed BAM file
                 if not hits:
                     for u in [read1, read2]:
-                        rec = pysam.AlignedSegment(header=pysam.AlignmentHeader.from_dict(sq_head)) # make an alignedsegment object
+                        rec = pysam.AlignedSegment(header=sq_head) # make an alignedsegment object
                         rec.query_sequence = u.sequence # set query sequence
                         rec.query_qualities = u.quality # set query qualities
                         rec.query_name = u.name # set query name
