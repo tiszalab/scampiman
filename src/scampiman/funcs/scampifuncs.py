@@ -36,76 +36,38 @@ def shrimp_header(version: str):
         +"🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\n")
 
 def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float, job: str) -> None:
-    """Display a progress bar with a shrimp swimming across the terminal.
+    """Display a lightweight progress indicator with a shrimp emoji.
     
     Args:
         total_process: Total number of processes to complete.
         elapsed_process: Number of processes completed.
-        time_taken: Time taken for the process.
-        bar_width: Width of the progress bar in characters.
+        time_taken: Time taken so far in seconds.
+        job: One of "preprocessing", "align", or "amp".
     """
-
-    terminal_size = shutil.get_terminal_size()
-    console_width = terminal_size.columns
-
-    progress = elapsed_process / total_process
-    
-    # Calculate percentage
-    percent = int(progress * 100)
+    percent = int(elapsed_process / total_process * 100) if total_process else 0
 
     if job == "preprocessing":
         if elapsed_process <= 0:
-            sys.stdout.write(f"🌊  Pulling in reads 🌊")
-            sys.stdout.flush()
-        if elapsed_process == total_process:
-            sys.stdout.write(f"  Counting reads  🌊\n")
-            sys.stdout.flush()
-        if elapsed_process <= total_process:
-            time.sleep(1)
-
+            print("🌊  Pulling in reads 🌊  Counting reads  🌊")
     elif job == "align":
         if elapsed_process == 0:
             print(f"\n🌊 Processing {total_process} reads with shrimp power! 🌊\n")
-
-        bar_width = abs(console_width - 40)
-        shrimp_pos = int(progress * bar_width)
-        
-        # Build the progress bar
-        water_before = "~" * shrimp_pos
-        water_after = "~" * (bar_width - shrimp_pos)
-        
-        # Create the bar with shrimp at current position
-        bar = f"[{water_before}🦐{water_after}]"
-
-
-        # Print the progress bar (overwrite previous line)
-        sys.stdout.write(f"\r{bar} {percent:3d}% | Alignment | {timedelta(seconds=time_taken)}")
-        sys.stdout.flush()
-
-        if elapsed_process == total_process:
-            print(f"\r{bar} {percent:3d}% | Alignment ✔ | {timedelta(seconds=time_taken)}\n")
-
+        else:
+            td = timedelta(seconds=int(time_taken))
+            done = elapsed_process == total_process
+            mark = " ✔" if done else ""
+            sys.stdout.write(f"\r🦐 {percent:3d}% | Alignment{mark} | {td}  ")
+            if done:
+                sys.stdout.write("\n")
+            sys.stdout.flush()
     elif job == "amp":
-        bar_width = abs(console_width - 48)
-        shrimp_pos = int(progress * bar_width)
-
-        # Build the progress bar
-        water_before = "~" * shrimp_pos
-        water_after = "~" * (bar_width - shrimp_pos)
-        
-        # Create the bar with shrimp at current position
-        bar = f"[{water_before}🦐{water_after}]"
-
-        # Print the progress bar (overwrite previous line)
-        sys.stdout.write(f"\r{bar} {percent:3d}% | Amplicon Analysis | {timedelta(seconds=time_taken)}")
-        sys.stdout.flush()
-
-        if elapsed_process == total_process:
-            print(f"\r{bar} {percent:3d}% | Amplicon Analysis ✔ | {timedelta(seconds=time_taken)}\n")
-            print("\n\n✨ Shrimp has arrived! Scampiman complete! ✨\n")
-
-    if elapsed_process < total_process:
-        time.sleep(1)        
+        td = timedelta(seconds=int(time_taken))
+        done = elapsed_process == total_process
+        mark = " ✔" if done else ""
+        sys.stdout.write(f"\r🦐 {percent:3d}% | Amplicon Analysis{mark} | {td}  ")
+        if done:
+            sys.stdout.write("\n\n\n✨ Shrimp has arrived! Scampiman complete! ✨\n\n")
+        sys.stdout.flush() 
 
 
 
