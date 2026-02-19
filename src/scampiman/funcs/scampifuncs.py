@@ -67,7 +67,7 @@ def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float,
         sys.stdout.write(f"\r🦐 {percent:3d}% | Amplicon Analysis{mark} | {td}  ")
         if done:
             sys.stdout.write("\n\n\n✨ Shrimp has arrived! Scampiman complete! ✨\n\n")
-        sys.stdout.flush()     
+        sys.stdout.flush() 
 
 
 
