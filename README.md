@@ -10,7 +10,7 @@
 🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊
 
 # scampiman
-A pipeline to align, quality control, and summarize tiled amplicon coverage (of a virus, probably) from raw sequences.
+A pipeline to align, quality control, and summarize tiled amplicon coverage (of a virus, probably) from sequencing sequences.
 
 **Rationale:** We noticed 1) that tiled amplicon data can come in many forms from many technologies, and 2) errors introduced in library prep can lead to sequencing artifacts that, if not handled properly, can cause issues with downstream analysis.
 
@@ -28,7 +28,7 @@ A pipeline to align, quality control, and summarize tiled amplicon coverage (of 
     `single-end` or `paired-end`
 
 1) Align reads to reference (`mappy`) and filter unwanted alignments
-2) pysam: sort, ampliconclip, ampliconstats
+2) `pysam`: sort, ampliconclip, ampliconstats
 3) Parse ampliconstats output into table, output `.tsv`
 
 # Alignment Filtering
@@ -66,7 +66,7 @@ Removal of these reads is important because it accounts for:
 
 Note: consider making an isolated environment (conda or venv) for `scampiman`.
 
-1. clone this repo
+1. clone this repo or download and unpack release.
 
 2. `pip` install scampiman
 
@@ -79,6 +79,8 @@ From the terminal:
 * This should install `scampiman` as a runnable command from the terminal
 
 # Running `scampiman`
+
+**Highly Recommended**: quality filter reads before running scampiman with e.g. `fastp` (short reads) or `fastplong` (long reads)!
 
 ### With a directory of unaligned `.bam` files from an ONT run:
 
