@@ -5,5 +5,4 @@ channels:
 dependencies:
   - bioconda::mappy
   - bioconda::pysam
-  - conda-forge::pandas
   - python

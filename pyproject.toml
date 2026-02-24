@@ -8,7 +8,7 @@ version = "0.1.0" # should match version in main script
 authors = [
   { name="Mike Tisza", email="michael.tisza@gmail.com" }, # your name here 
 ]
-description = "python command line interface tool template."
+description = "A pipeline to align, quality control, and summarize tiled amplicon coverage (of a virus, probably) from sequencing reads."
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
@@ -17,8 +17,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pysam",
-    "mappy"
+    "pysam>=0.22.0",
+    "mappy>=2.26"
 ]
 
 # instructs setuptools to look in the src/ directory for scripts

@@ -23,7 +23,7 @@ def scampiman():
     starttime = time.perf_counter()
 
     # I like to keep this print statement for debugging
-    print(f"this script dir: {os.path.dirname(__file__) }")
+    #print(f"this script dir: {os.path.dirname(__file__) }")
 
     __version__ = "0.1.0"
 
@@ -225,8 +225,8 @@ def scampiman():
                 )
 
                 scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
-            except:
-                logger.error("[ERROR] Failed to align single-end read files.")
+            except Exception as e:
+                logger.error(f'[ERROR] Failed to align single-end read files: {e}')
 
         elif str(args.rcon) == "paired-end":
             logger.info(f'> paired-end option ')
@@ -248,8 +248,8 @@ def scampiman():
                 )
 
                 scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
-            except:
-                logger.error("[ERROR] Failed to align paired-end read files.")
+            except Exception as e:
+                logger.error(f'[ERROR] Failed to align paired-end read files: {e}')
 
     except Exception as e:
         logger.error("[ERROR] Read Alignment ERROR: ")

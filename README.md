@@ -10,7 +10,7 @@
 🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊
 
 # scampiman
-A pipeline to align, quality control, and summarize tiled amplicon coverage (of a virus, probably) from sequencing sequences.
+A pipeline to align, quality control, and summarize tiled amplicon coverage (of a virus, probably) from sequencing reads.
 
 **Rationale:** We noticed 1) that tiled amplicon data can come in many forms from many technologies, and 2) errors introduced in library prep can lead to sequencing artifacts that, if not handled properly, can cause issues with downstream analysis.
 
@@ -118,7 +118,7 @@ scampiman -r my_fastqs/seq1.ONT.fastq -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sa
 Commonly, you will want to keep the properly filtered `.bam` file to run downstream analysis to determine lineage, derive consensus genome, or analyze allele frequency.
 
 ```bash
-scampiman -r my_fastqs/seq1.ONT.fastq -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s seq1 -o proj2_scampi -f fastq -t files -c single-end --seqtech ont --keep T
+scampiman -r my_fastqs/seq1.ONT.fastq -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s seq1 -o proj2_scampi -f fastq -t files -c single-end --seqtech ont --keep bam
 ```
 
 
