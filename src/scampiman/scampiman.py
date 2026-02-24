@@ -4,9 +4,6 @@ import argparse
 import sys, os
 import pysam
 import shutil
-import subprocess
-from subprocess import Popen, PIPE, STDOUT
-from pathlib import Path
 import time
 import logging
 from datetime import timedelta
@@ -190,7 +187,7 @@ def scampiman():
         if str(args.rcon) == "single-end":
             logger.info(f'> single-end option ')
             print(f"🦐 single-end reads ")
-            print(f"✨ Let's go! ✨")
+            print(f"✨✨ Let's go! ✨✨")
             try:
                 scaf.shrimp_progress(1, 0, 0, "preprocessing")
                 reads_list = scaf.file_paths(args.READS, args.rfmt, args.rcon, args.intype)
@@ -204,28 +201,21 @@ def scampiman():
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
                     reads_list
                 )
-                alignstats.to_csv(
-                    os.path.join(
-                        args.OUTPUT_DIR,
-                        f'{str(args.SAMPLE)}.summarystats.tsv'
-                    ),
-                    sep = "\t",
-                    index=False
-                )
+
+                scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
             except:
                 logger.error("Failed to align single-end read files.")
 
         elif str(args.rcon) == "paired-end":
             logger.info(f'> paired-end option ')
             print(f"🦐 paired-end reads ")
-            print(f"✨✨ Let's go 😎 ✨✨")
+            print(f"✨✨ Let's go ✨✨")
 
             try:
                 scaf.shrimp_progress(2, 0, 0, "preprocessing")
                 read1_list, read2_list = scaf.file_paths(args.READS, args.rfmt, args.rcon, args.intype)
 
                 alignstats = scaf.mappy_al_paired(
-                    #args.rfmt,
                     def_CPUs,
                     args.SEQTECH,
                     str(args.genome),
@@ -234,14 +224,8 @@ def scampiman():
                     read1_list,
                     read2_list
                 )
-                alignstats.to_csv(
-                    os.path.join(
-                        args.OUTPUT_DIR,
-                        f'{str(args.SAMPLE)}.summarystats.tsv'
-                    ),
-                    sep = "\t",
-                    index=False
-                )            
+
+                scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
             except:
                 logger.error("Failed to align paired-end read files.")
 
@@ -311,21 +295,16 @@ def scampiman():
 
 
             logger.info(f'amptable')
-            odf = scaf.amptable(
+            scaf.amptable(
                 os.path.join(
                     args.OUTPUT_DIR,
                     f'{str(args.SAMPLE)}.ampliconstats.tsv'
                 ),
-                args.SAMPLE
-            )
-
-            odf.to_csv(
+                args.SAMPLE,
                 os.path.join(
                     args.OUTPUT_DIR,
                     f'{str(args.SAMPLE)}.amplicontable.tsv'
-                ),
-                sep = "\t",
-                index=False
+                )
             )
 
             amp_endtime = time.perf_counter()
@@ -345,8 +324,10 @@ def scampiman():
     ]:
         if os.path.isfile(fin):
             logger.info(f"### detected - {fin}")
+            print(f"  🍤  {fin}")
         else:
             logger.info(f"!!!! Not found - {fin}")
+            print(f"  Ⓧ NOT FOUND - {fin}")
     
     if os.path.isdir(sca_temp) and not args.KEEP:
         logger.info(f"removing temp files in: {sca_temp}")

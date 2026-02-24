@@ -1,11 +1,9 @@
 import logging
-import re, gzip, shutil
+import re, shutil
 import argparse
 import pysam
 import sys, os, time
-import pandas as pd
 import mappy as mp
-from typing import Optional, Tuple, List, Dict, Any
 from datetime import timedelta
 
 # since I'm logging, I need the same logger as in the main script
@@ -571,7 +569,7 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
                     read_sa_tag.pop(hit_index) # remove the current hit's sa_tag from sa_tags
                     # if no other hit sa tags, write to output BAM file without SA tag; 
                     if not read_sa_tag: 
-                        read_alignment.tags =  i.get_tags() + tags[hit_index] # add original BAM tags and tags from the read alignment
+                        read_alignment.tags = tags[hit_index] # add tags from the read alignment
                         obam.write(read_alignment) # write to output BAM file
                         continue
                     # if there are other hit sa tags, write to output BAM file with SA tag
@@ -581,8 +579,7 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
     fbam.close() 
     pysam.sort("-o", outf.replace('.bam', '.sort.bam'), outf) # sort BAM file
     
-    flag_df = pd.DataFrame(flagstats, index=[0]) # create flagstats pandas DataFrame
-    return flag_df
+    return flagstats
 
 
 
@@ -667,53 +664,87 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
     fbam.close() 
     pysam.sort("-o", outf.replace('.bam', '.sort.bam'), outf) # sort BAM file
     
-    flag_df = pd.DataFrame(flagstats, index=[0]) # create flagstats pandas DataFrame
-    return flag_df
+    return flagstats
+
+def stats_tsv(stat_dict: dict, nrows: int, outf: str):
+    """
+    Write stats in a dictionary into a tsv file
+    """
+    # set up rows for tsv file
+    #col_names = list(stat_dict.keys()) #was scared this wouldn't be good because is stat_dict.values in the same order?
+    col_names = []
+    rows = [[] for i in range(nrows)] # a list of empty list (1 list per row)
+
+    # got through the dictionary and buid the file rows
+    for key, value in stat_dict.items(): # makes sure they are in the correct order
+        col_names.append(key) # get the column names
+        # go through the values of value items and append it to the proper row list
+        ## this is basically transposing the lists (if there is one)
+        if type(value) is list:
+            for r in range(len(value)):
+                rows[r].append(value[r]) 
+        elif type(value) is int: # if it is just a single value, there is only 1 row. 
+            rows[0].append(str(value)) # append it to the first row
+
+    with open(outf, 'w') as f:
+        f.write('\t'.join(col_names) + '\n')
+        for wr in rows: # write the rows
+            f.write('\t'.join(wr) + '\n')            
+    f.close()
 
 
-
-def amptable(ampstats: str, sampid: str) -> pd.DataFrame:
-
-    odf = pd.DataFrame(columns=[
-        'accession',
-        'amplicon_number',
-        'lprimer',
-        'rprimer'
-        ]
-    )
-    with open(ampstats, 'r') as sam:
-        for line in sam:
+def amptable(ampstats: str, sampid: str, outf: str):
+    """
+    Take in the output of ampliconstats, grab the important parts, save it as a tsv file
+    """
+    # set up the dictionary
+    odf = {'accession': [], 'amplicon_number': [], 'lprimer': [], 'rprimer': []}
+    # get amplicon information for empty keys within dictionary
+    with open(ampstats, 'r') as lhf:
+        for line in lhf:
             line = line.strip()
-            if line.startswith("AMPLICON"):
+            if line.startswith("AMPLICON"): # this is set up more like a table rows
                 ampinfo = line.split('\t')[1:]
-                odf.loc[len(odf)] = ampinfo
+                odf['accession'].append(ampinfo[0])
+                odf['amplicon_number'].append(ampinfo[1])
+                odf['lprimer'].append(ampinfo[2])
+                odf['rprimer'].append(ampinfo[3])
+
+    row_num = len(odf['amplicon_number']) # get the number of amplicons/ number of rows
+    # reopen file and pull out the rest of the information (the data is set up more like columns)
+    with open(ampstats, 'r') as lhf:
+        for line in lhf:
+            line = line.strip()
+
             if line.startswith("FREADS"):
                 columns = line.split('\t')[2:]
-                if len(odf) == len(columns):
+                if row_num == len(columns):
                     odf['amplicon_reads'] = columns
                 else:
                     raise Exception("amplicon_reads data incorrect length")
-
             if line.startswith("FVDEPTH"):
                 columns = line.split('\t')[2:]
-                if len(odf) == len(columns):
+                if row_num == len(columns):
                     odf['full_length_depth'] = columns
                 else:
                     raise Exception("full_length_depth data incorrect length")
             if line.startswith("FDEPTH"):
                 columns = line.split('\t')[2:]
-                if len(odf) == len(columns):
+                if row_num == len(columns):
                     odf['avg_depth'] = columns
                 else:
                     raise Exception("avg_depth data incorrect length")
             if line.startswith("FPCOV-1"):
                 columns = line.split('\t')[2:]
-                if len(odf) == len(columns):
+                if row_num == len(columns):
                     odf['amplicon_coverage'] = columns
                 else:
                     raise Exception("amplicon_coverage data incorrect length")
-    odf['sample_ID'] = sampid
-    return odf
+    #add in the sample_ID column at the end
+    odf['sample_ID'] = [sampid for i in range(row_num)] 
+    # make tsv file
+    stats_tsv(odf, row_num, outf)
+
 
 
 def bed_genome_match(bed: str, genome: str) -> bool:
