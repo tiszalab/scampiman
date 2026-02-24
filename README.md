@@ -66,6 +66,14 @@ Removal of these reads is important because it accounts for:
 
 Note: consider making an isolated environment (conda or venv) for `scampiman`.
 
+**Easiest Way**
+
+`, Simply `pip install` with the release tarball link.
+
+`pip install https://github.com/tiszalab/scampiman/archive/refs/tags/v0.1.0.tar.gz`
+
+**Alternative Methods**:
+
 1. clone this repo or download and unpack release.
 
 2. `pip` install scampiman
@@ -76,7 +84,7 @@ From the terminal:
 
 `pip install .`
 
-* This should install `scampiman` as a runnable command from the terminal
+* Either method should install `scampiman` as a runnable command from the terminal.
 
 # Running `scampiman`
 
