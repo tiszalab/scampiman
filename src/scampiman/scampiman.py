@@ -4,9 +4,6 @@ import argparse
 import sys, os
 import pysam
 import shutil
-import subprocess
-from subprocess import Popen, PIPE, STDOUT
-from pathlib import Path
 import time
 import logging
 from datetime import timedelta
@@ -27,13 +24,11 @@ def scampiman():
     # I like to keep this print statement for debugging
     print(f"this script dir: {os.path.dirname(__file__) }")
 
-    __version__ = "0.0.3"
+    __version__ = "0.1.3"
 
     toolname = "scampiman"
 
     # this variable isn't used in this template, but it's useful for almost all bioinformatics
-    def_CPUs = os.cpu_count()
-
     def_workdir = os.getcwd()
 
     parser = argparse.ArgumentParser(prog=f'{toolname}',
@@ -68,14 +63,22 @@ def scampiman():
                         choices=['fastq', 'bam'],
                         help='read file format'
                         )
+    parser.add_argument("-c", "--read-configuration",
+                        dest="rcon", default="single-end", 
+                        choices=['single-end', 'paired-end'],
+                        help='read file configuration'
+                        )
     parser.add_argument("-t", "--input-type",
                         dest="intype", default="files", 
                         choices=['files', 'directory'],
                         help='read file format'
                         )
-
+    parser.add_argument("-@", "--cpus",
+                        dest="cpus", type=int,
+                        help='number of cpus to use'
+                        )
     parser.add_argument("--seqtech", dest="SEQTECH",
-                        default='illumina', 
+                        default='ont', 
                         choices=['illumina', 'ont'],
                         help='Which sequencing technology produced the reads?'
                         )
@@ -98,7 +101,7 @@ def scampiman():
     logger.setLevel(logging.DEBUG)
     # stream gets printed to terminal
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setLevel(logging.ERROR)
 
     # file gets saved to a specified file
     file_handler = logging.FileHandler(os.path.join(def_workdir, 
@@ -108,9 +111,16 @@ def scampiman():
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
     #########################
-
+    # get console width    
+    scaf.shrimp_header(__version__)
+    
     ## make directories
     out_directory = os.path.join(str(args.c_workdir), str(args.OUTPUT_DIR))
+
+    if not args.cpus:
+        def_CPUs = os.cpu_count()
+    else:
+        def_CPUs = args.cpus
 
     if not os.path.isdir(out_directory):
         os.makedirs(out_directory)
@@ -136,15 +146,7 @@ def scampiman():
         if not os.path.isfile(inf):
             logger.error(f'input file not found at {inf}. exiting.')
             sys.exit()
-
-    align_starttime = time.perf_counter()
-
-    logger.info(f'Starting alignment.')
-
-    READ_STR = ' '.join(map(str,args.READS))
-    logger.info(f'read string: ')
-    logger.info(f'{READ_STR}')
-
+    
     #check if bed and genome files have same accessions
     if not scaf.bed_genome_match(
         str(args.bed),
@@ -153,63 +155,80 @@ def scampiman():
         logger.error("accessions in bed file and genome file do not match.")
         logger.error("Exiting.")
         sys.exit()
-        
+    
+    # if args.rfmt is "bam" and args.rcon is "paired-end", exit
+    if str(args.rfmt) == "bam" and str(args.rcon) == "paired-end":
+        logger.error("bam format is not supported for paired-end reads.")
+        logger.error("Exiting.")
+        sys.exit()
+
+    #READ_STR = ' '.join(map(str,args.READS))
+    logger.info(f'read string: ')
+    logger.info(f'{args.READS}')
+
+    align_starttime = time.perf_counter()
+    logger.info(f'Starting alignment.')
+    
     # run main pipeline
     try:
         if str(args.rfmt) == "bam":
             logger.info(f'> bam option ')
-            if str(args.intype) == "files":
-                logger.info(f'> files option ')
+            print(f"🦐 bam option ")
+        elif str(args.rfmt) == "fastq":
+            logger.info(f'> fastq option ')
+            print(f"🦐 fastq option ")
+        if str(args.intype) == "files":
+            logger.info(f'> files option ')
+            print(f"🦐 files option ")
+        elif str(args.intype) == "directory":
+            logger.info(f'> directory option ')
+            print(f"🦐 directory option ")
 
-                if len(args.READS) > 1:
-                    scaf.pysam_cat(
-                        READ_STR,
-                        args.intype,
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
-                    )
+        if str(args.rcon) == "single-end":
+            logger.info(f'> single-end option ')
+            print(f"🦐 single-end reads ")
+            print(f"✨✨ Let's go! ✨✨")
+            try:
+                scaf.shrimp_progress(1, 0, 0, "preprocessing")
+                reads_list = scaf.file_paths(args.READS, args.rfmt, args.rcon, args.intype)
 
-                    scaf.dorado_al(
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
-                        def_CPUs, 
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                        str(args.genome)
-                    )
-
-                else:
-                    scaf.dorado_al(
-                        READ_STR, 
-                        def_CPUs, 
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
-                        str(args.genome)
-                    )
-            if str(args.intype) == "directory":
-                logger.info(f'> directory option ')
-                try: 
-                    scaf.pysam_cat(
-                        READ_STR,
-                        args.intype,
-                        os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam')
-                    )
-                except Exception as e:
-                    logger.error("samtools cat not successful:")
-                    logger.error(e)
-
-                scaf.dorado_al(
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}_cat.bam'), 
-                    def_CPUs, 
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'),
-                    str(args.genome)
+                alignstats = scaf.mappy_al_single(
+                    args.rfmt,
+                    def_CPUs,
+                    args.SEQTECH,
+                    str(args.genome),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.bam'),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
+                    reads_list
                 )
 
-        if str(args.rfmt) == "fastq":
-            logger.info(f'> fastq option ')
-            scaf.mini2_al(
-                args.READS,
-                def_CPUs,
-                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
-                str(args.genome),
-                args.SEQTECH
-            )
+                scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
+            except:
+                logger.error("Failed to align single-end read files.")
+
+        elif str(args.rcon) == "paired-end":
+            logger.info(f'> paired-end option ')
+            print(f"🦐 paired-end reads ")
+            print(f"✨✨ Let's go ✨✨")
+
+            try:
+                scaf.shrimp_progress(2, 0, 0, "preprocessing")
+                read1_list, read2_list = scaf.file_paths(args.READS, args.rfmt, args.rcon, args.intype)
+
+                alignstats = scaf.mappy_al_paired(
+                    def_CPUs,
+                    args.SEQTECH,
+                    str(args.genome),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.bam'),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
+                    read1_list,
+                    read2_list
+                )
+
+                scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
+            except:
+                logger.error("Failed to align paired-end read files.")
+
     except Exception as e:
         logger.error("Read Alignment ERROR: ")
         logger.error(e)
@@ -221,14 +240,12 @@ def scampiman():
     logger.info(f"> alignment step took {timedelta(seconds=time_taken)}")
 
     logger.info(f'Starting amplicon analysis.')
+    
+    amp_starttime = time.perf_counter()
 
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
-            logger.info(f'flagstat')
-            scaf.flag_stats(
-                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam'), 
-                os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.flagstat.tsv') 
-            )
+            scaf.shrimp_progress(3, 0, 0, "amp")
 
             logger.info(f'samcov')
             pysam.samtools.coverage(
@@ -238,9 +255,11 @@ def scampiman():
                     ),
                 os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam') 
             )
-
+            amp_endtime = time.perf_counter()
+            time_taken = amp_endtime - amp_starttime
+            scaf.shrimp_progress(3, 1, time_taken, "amp")
             logger.info(f'ampclip')
-            logger.info(f'longest amplicon length: {scaf.ampliconstats_length(args.bed)-51}')
+            logger.info(f'longest amplicon length: {int(scaf.ampliconstats_length(args.bed)/2)}bp')
 
             pysam.samtools.ampliconclip(
                 '--both-ends',
@@ -253,8 +272,9 @@ def scampiman():
                     ),
                 os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')
             )
-
-
+            amp_endtime = time.perf_counter()
+            time_taken = amp_endtime - amp_starttime
+            scaf.shrimp_progress(3, 2, time_taken, "amp")
             pysam.samtools.ampliconstats(
                 '-@', str(def_CPUs),
                 '-l', str(scaf.ampliconstats_length(args.bed)),
@@ -269,27 +289,27 @@ def scampiman():
                     f'{str(args.SAMPLE)}.ampclip.bam'
                     )
             )
+
             logger.info(f"temp dir: {sca_temp}")
             logger.info(os.listdir(sca_temp))
 
 
             logger.info(f'amptable')
-            odf = scaf.amptable(
+            scaf.amptable(
                 os.path.join(
                     args.OUTPUT_DIR,
                     f'{str(args.SAMPLE)}.ampliconstats.tsv'
                 ),
-                args.SAMPLE
-            )
-
-            odf.to_csv(
+                args.SAMPLE,
                 os.path.join(
                     args.OUTPUT_DIR,
                     f'{str(args.SAMPLE)}.amplicontable.tsv'
-                ),
-                sep = "\t",
-                index=False
+                )
             )
+
+            amp_endtime = time.perf_counter()
+            time_taken = amp_endtime - amp_starttime            
+            scaf.shrimp_progress(3, 3, time_taken, "amp")
 
         except Exception as e:
             logger.error("Amplicon Analysis ERROR: ")
@@ -297,14 +317,17 @@ def scampiman():
 
     logger.info(f"### scampiman outputs: ")
     for fin in [
+        f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.summarystats.tsv',
         f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.amplicontable.tsv',
         f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampliconstats.tsv',
         f'{str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.samcov.tsv'
     ]:
         if os.path.isfile(fin):
             logger.info(f"### detected - {fin}")
+            print(f"  🍤  {fin}")
         else:
             logger.info(f"!!!! Not found - {fin}")
+            print(f"  Ⓧ NOT FOUND - {fin}")
     
     if os.path.isdir(sca_temp) and not args.KEEP:
         logger.info(f"removing temp files in: {sca_temp}")
