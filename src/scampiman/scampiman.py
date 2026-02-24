@@ -24,7 +24,7 @@ def scampiman():
     # I like to keep this print statement for debugging
     print(f"this script dir: {os.path.dirname(__file__) }")
 
-    __version__ = "0.1.3"
+    __version__ = "0.1.0"
 
     toolname = "scampiman"
 

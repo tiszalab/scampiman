@@ -1,16 +1,18 @@
-🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊
-🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊
-🌊🌊🌊🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊
-🌊🌊🦐🦐🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊
-🌊🦐🌊🌊🌊🦐🌊🌊🦐🦐🦐🌊🦐🌊🌊🌊🦐🌊🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🦐🌊
-🌊🌊🦐🌊🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🦐🌊🦐🦐🌊🦐🌊
-🌊🌊🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🌊🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊
-🌊🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🦐🌊🌊🦐🌊
-🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊
+🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\
+🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\
+🌊🌊🌊🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\
+🌊🌊🦐🦐🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊\
+🌊🦐🌊🌊🌊🦐🌊🌊🦐🦐🦐🌊🦐🌊🌊🌊🦐🌊🦐🦐🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🦐🌊\
+🌊🌊🦐🌊🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🦐🌊🦐🦐🌊🦐🌊\
+🌊🌊🌊🦐🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🌊🦐🌊🦐🌊🌊🌊🌊🌊🦐🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🦐🌊\
+🌊🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🌊🦐🌊🌊🦐🌊\
+🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\
 🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🦐🌊🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊
 
 # scampiman
-A pipeline to align and summarize tiled amplicon coverage (of a virus, probably) from raw sequences.
+A pipeline to align, quality control, and summarize tiled amplicon coverage (of a virus, probably) from raw sequences.
+
+**Rationale:** We noticed 1) that tiled amplicon data can come in many forms from many technologies, and 2) errors introduced in library prep can lead to sequencing artifacts that, if not handled properly, can cause issues with downstream analysis.
 
 **Requires: Reads, Reference Genome(s), Primer `.bed` File**
 
@@ -47,7 +49,7 @@ Removal of these reads is important because it accounts for:
 2. ligation between segments originating from different sources. For example, different barcodes of ONT kits.
 
 ## Paired‑end Reads
-Scampiman assumes that paired‑end reads were generated on an Illumina platform.
+Scampiman assumes that paired‑end reads were generated on an Illumina or similar platform.
 
 The filtering parameters are as follows:
 - Removes paired reads that align to the same strand.
@@ -62,21 +64,11 @@ Removal of these reads is important because it accounts for:
 
 # Install
 
-clone this repo
+Note: consider making an isolated environment (conda or venv) for `scampiman`.
 
-## Make conda environment
+1. clone this repo
 
-`conda env create -f scampiman/environment/scampiman.yml`
-
-once complete:
-
-`conda activate scampiman`
-
-## pip install scampiman
-
-Using `pip` to install any python "package" as a command line tool:
-
-This requires the `pyproject.toml` file included in this repo. Please see notes therein. 
+2. `pip` install scampiman
 
 From the terminal:
 
@@ -88,22 +80,43 @@ From the terminal:
 
 # Running `scampiman`
 
-With a directory of unaligned `.bam` files from an ONT run:
+### With a directory of unaligned `.bam` files from an ONT run:
 
 ```bash
-scampiman -r proj1/bam_pass/barcode24 -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s barcode24 -o proj1_scampi -f bam -t directory -c single-end --seqtech ont  --temp $TMPDIR
+scampiman -r proj1/bam_pass/barcode24 -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s barcode24 -o proj1_scampi -f bam -t directory -c single-end --seqtech ont
 ```
 
-With some unaligned `.bam` files from an ONT run:
-
+You can also specify multiple directories:
 ```bash
-scampiman -r proj1/bam_pass/barcode24/*bam -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s barcode24 -o proj1_scampi -f bam -t files -c single-end --seqtech ont --temp $TMPDIR
+scampiman -r flowcell1/bam_pass/barcode24 flowcell2/bam_pass/barcode24 -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s barcode24 -o proj1_scampi -f bam -t directory -c single-end --seqtech ont
 ```
 
-With some `.fastq` files from an Illumina run:
+### With some unaligned `.bam` files from an ONT run:
 
 ```bash
-scampiman -r my_fastqs/seq1.R1.fastq my_fastqs/seq1.R2.fastq -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s seq1 -o proj2_scampi -f fastq -t files -c paired-end --seqtech illumina --temp $TMPDIR
+scampiman -r proj1/bam_pass/barcode24/*bam -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s barcode24 -o proj1_scampi -f bam -t files -c single-end --seqtech ont
+```
+
+It's better to use `-t directory` if you are using all files in a directory.
+
+### With `.fastq` files:
+
+from a paired-end Illumina run:
+```bash
+scampiman -r my_fastqs/seq1.R1.fastq my_fastqs/seq1.R2.fastq -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s seq1 -o proj2_scampi -f fastq -t files -c paired-end --seqtech illumina
+```
+
+Single-end  (e.g. ONT) works too:
+```bash
+scampiman -r my_fastqs/seq1.ONT.fastq -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s seq1 -o proj2_scampi -f fastq -t files -c single-end --seqtech ont
+```
+
+### Keeping aligned `.bam` files for downstream analysis:
+
+Commonly, you will want to keep the properly filtered `.bam` file to run downstream analysis to determine lineage, derive consensus genome, or analyze allele frequency.
+
+```bash
+scampiman -r my_fastqs/seq1.ONT.fastq -b SARS-CoV-2.ARTIC_5.3.2.primer.bed -g sars_cov2_MN908947.3.fasta -s seq1 -o proj2_scampi -f fastq -t files -c single-end --seqtech ont --keep T
 ```
 
 
@@ -120,17 +133,11 @@ Rscript scampiman/plot_script/plot_scampiman_batch1.R scampi_projects my_amplico
 ```
 
 
-terminal commmand used to create `scampiman` conda environment:
-
-```
-$ conda create -n scampiman -c conda-forge -c bioconda python bioconda::mappy bioconda::pysam conda-forge::pandas 
-```
-
 terminal command to add `R` plotting capabilities 
 ```
-$ conda activate scampiman
+conda activate scampiman
 
-$ conda install -c conda-forge conda-forge::r-rprojroot conda-forge::r-tidyverse conda-forge::r-cowplot conda-forge::r-readxl
+conda install -c conda-forge conda-forge::r-rprojroot conda-forge::r-tidyverse conda-forge::r-cowplot conda-forge::r-readxl
 ```
 
 
