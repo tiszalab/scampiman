@@ -2,6 +2,7 @@
 
 import argparse
 import sys, os
+import glob
 import pysam
 import shutil
 import time
@@ -86,8 +87,10 @@ def scampiman():
                         dest="TEMP_DIR", type=str, default='default',
                         help='path of temporary directory. Default is {OUTPUT_DIR}/{SAMPLE}_temp/')
     parser.add_argument("--keep", 
-                        dest="KEEP", type=scaf.str2bool, default='False',
-                        help='True of False. Keep the intermediate files, located in the temporary directory? These can add up, so it is not recommended if space is a concern.') 
+                        dest="KEEP", default='none', choices=['none', 'all', 'bam'],
+                        help='True of False. Keep the intermediate files, located in the temporary directory? \
+                            none: keep no files. all: keep all files. \
+                            bam: keep ampclip.bam for downstream processing and move to main output directory.') 
     parser.add_argument("-wd", "--working_directory", dest="c_workdir", type=str, default=def_workdir, 
                         help=f"Default: {def_workdir} -- \
                         Set working directory with absolute or relative path. \
@@ -104,8 +107,9 @@ def scampiman():
     stream_handler.setLevel(logging.ERROR)
 
     # file gets saved to a specified file
-    file_handler = logging.FileHandler(os.path.join(def_workdir, 
-                                                    f"scampi{args.SAMPLE}.log"))
+    file_handler = logging.FileHandler(
+        os.path.join(def_workdir, f"scampi{args.SAMPLE}.log")
+        )
     file_handler.setLevel(logging.DEBUG)
 
     logger.addHandler(file_handler)
@@ -125,42 +129,60 @@ def scampiman():
     if not os.path.isdir(out_directory):
         os.makedirs(out_directory)
 
+
+    #check if files exist
+    for inf in [args.genome, args.bed]:
+        if not os.path.isfile(inf):
+            logger.error(f'[ERROR] input reference file not found at {inf}. exiting.')
+            sys.exit()
+    
+    if str(args.intype) == "files":
+        for fi in args.READS:
+            if not os.path.isfile(fi):
+                logger.error(f'[ERROR] input read file not found at {fi}. exiting.')
+                sys.exit()
+        if str(args.rcon) == "paired-end" and len(args.READS) != 2:
+            logger.error(f'[ERROR] with "-c paired-end", you must specify 2 input reads files, not {len(args.READS)}. exiting.')
+            sys.exit()
+    elif str(args.intype) == "directory":
+        for di in args.READS:
+            pattern = f"*{args.rfmt}"
+            dfiles = glob.glob(os.path.join(di, pattern))
+            if not os.path.isdir(di):
+                logger.error(f'[ERROR] input read directory not found at {di}. exiting.')
+                sys.exit()
+            if not dfiles:
+                logger.error(f'[ERROR] input read files not found within {di}. exiting.')
+                sys.exit()
+    #check if bed and genome files have same accessions
+    if not scaf.bed_genome_match(
+        str(args.bed),
+        str(args.genome)
+    ):
+        logger.error("[ERROR] accessions in bed file and genome file do not match.")
+        logger.error("[ERROR] Exiting.")
+        sys.exit()
+    
+    # if args.rfmt is "bam" and args.rcon is "paired-end", exit
+    if str(args.rfmt) == "bam" and str(args.rcon) == "paired-end":
+        logger.error("[ERROR] bam format is not supported for paired-end reads.")
+        logger.error("[ERROR] Exiting.")
+        sys.exit()
+
+
     if str(args.TEMP_DIR) == 'default':
         sca_temp = os.path.join(out_directory, f'{str(args.SAMPLE)}_temp')
     else:
         sca_temp = str(args.TEMP_DIR)
 
     if str(sca_temp) == str(args.OUTPUT_DIR):
-        logger.error("temporary directory and output directory are the same.")
-        logger.error("This is not allowed. Exiting.")
+        logger.error("[ERROR] temporary directory and output directory are the same. This is not allowed. Exiting.")
         sys.exit()
 
     if not os.path.isdir(sca_temp):
         os.makedirs(sca_temp)
         logger.info(f"temp dir: {sca_temp}")
         logger.info(os.listdir(sca_temp))
-
-
-    #check if files exist
-    for inf in [args.genome, args.bed]:
-        if not os.path.isfile(inf):
-            logger.error(f'input file not found at {inf}. exiting.')
-            sys.exit()
-    
-    #check if bed and genome files have same accessions
-    if not scaf.bed_genome_match(
-        str(args.bed),
-        str(args.genome)
-    ):
-        logger.error("accessions in bed file and genome file do not match.")
-        logger.error("Exiting.")
-        sys.exit()
-    
-    # if args.rfmt is "bam" and args.rcon is "paired-end", exit
-    if str(args.rfmt) == "bam" and str(args.rcon) == "paired-end":
-        logger.error("bam format is not supported for paired-end reads.")
-        logger.error("Exiting.")
-        sys.exit()
 
     #READ_STR = ' '.join(map(str,args.READS))
     logger.info(f'read string: ')
@@ -204,7 +226,7 @@ def scampiman():
 
                 scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
             except:
-                logger.error("Failed to align single-end read files.")
+                logger.error("[ERROR] Failed to align single-end read files.")
 
         elif str(args.rcon) == "paired-end":
             logger.info(f'> paired-end option ')
@@ -227,10 +249,10 @@ def scampiman():
 
                 scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
             except:
-                logger.error("Failed to align paired-end read files.")
+                logger.error("[ERROR] Failed to align paired-end read files.")
 
     except Exception as e:
-        logger.error("Read Alignment ERROR: ")
+        logger.error("[ERROR] Read Alignment ERROR: ")
         logger.error(e)
 
     align_endtime = time.perf_counter()
@@ -312,7 +334,7 @@ def scampiman():
             scaf.shrimp_progress(3, 3, time_taken, "amp")
 
         except Exception as e:
-            logger.error("Amplicon Analysis ERROR: ")
+            logger.error("[ERROR] Amplicon Analysis ERROR: ")
             logger.error(e)
 
     logger.info(f"### scampiman outputs: ")
@@ -329,7 +351,17 @@ def scampiman():
             logger.info(f"!!!! Not found - {fin}")
             print(f"  Ⓧ NOT FOUND - {fin}")
     
-    if os.path.isdir(sca_temp) and not args.KEEP:
+    if os.path.isdir(sca_temp) and str(args.KEEP) == 'none':
+        logger.info(f"removing temp files in: {sca_temp}")
+        shutil.rmtree(sca_temp)
+    elif str(args.KEEP) == 'bam':
+        # move the .ampclip.bam file then delete the temp dir
+        shutil.move(
+            os.path.join(sca_temp, f'{str(args.SAMPLE)}.ampclip.bam'),
+            os.path.join(str(args.OUTPUT_DIR), f'{str(args.SAMPLE)}.ampclip.bam')
+        )
+        logger.info(f"### {str(args.SAMPLE)}.ampclip.bam moved to {str(args.OUTPUT_DIR)}")
+        print(f"  🍤  {str(args.OUTPUT_DIR)}/{str(args.SAMPLE)}.ampclip.bam")
         logger.info(f"removing temp files in: {sca_temp}")
         shutil.rmtree(sca_temp)
 
