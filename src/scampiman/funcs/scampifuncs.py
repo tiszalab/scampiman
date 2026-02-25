@@ -1,6 +1,5 @@
 import logging
 import re, shutil
-import argparse
 import pysam
 import sys, os, time
 import mappy as mp
@@ -45,8 +44,7 @@ def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float,
     percent = int(elapsed_process / total_process * 100) if total_process else 0
 
     if job == "preprocessing":
-        if elapsed_process <= 0:
-            print("🌊  Pulling in reads 🌊  Counting reads  🌊")
+        print("🌊  Pulling in reads 🌊  Counting reads  🌊")
     elif job == "align":
         if elapsed_process == 0:
             print(f"\n🌊 Processing {total_process} reads with shrimp power! 🌊\n")
@@ -69,83 +67,55 @@ def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float,
 
 
 
-def file_paths(reads: list, rfmt: str, rcon: str, intype: str):
-    """ Makes a list of paths to  input files from a string. 
-    This is mostly for finding the files within a directory and/or return matching R1 and R2 files.
-    If intype is "files" and the rcon is "single-end", it will just return a list version of the "reads" string.
+def paired_paths(file_list: list):
+    """ Return matching R1 and R2 files from a list of read paths
 
     Args:
-        reads: string of space separated paths to input files or directories
-        rfmt: "bam" or "fastq"
-        rcon: "single-end" or "paired-end"
-        intype: "directory" or "files"
+        reads: string of space separated paths 
+        rcon: should be"paired-end"
     """
-    file_list = []
-    # establish the file extensions
-    if rfmt == "bam":
-        extensions = ('.bam')
-    elif rfmt == "fastq":
-        extensions = ('.fastq', '.fq', '.fastq.gz', '.fq.gz')
-    # find the files with file extensions in directories
-    if intype == "directory":
-        for directory in reads:
-            for file in os.listdir(directory):
-                if file.endswith(extensions):
-                    f = os.path.join(directory, file)
-                    if os.path.isfile(f) and os.path.getsize(f) > 0:
-                        file_list.append(f)
-    # if string of files given, filter for file extensions and put into list
-    elif intype == "files": 
-        for file in reads:
-            if file.endswith(extensions):
-                f = os.path.abspath(file)
-                if os.path.isfile(f) and os.path.getsize(f) > 0:
-                    file_list.append(f)
-                else:
-                    logger.info(f"File {file} excluded; Does not exist or is empty.") 
-            else:
-                logger.info(f"File {file} excluded; Does not end with {extensions}") 
+    #establish the file patterns
+    r1_pattern = re.compile(r'(.+?)(_R1_|_R1\.|.R1\.|_1\.|_1_)(.*)$') # pattern for R1 files
+    r2_pattern = re.compile(r'(.+?)(_R2_|_R2\.|.R2\.|_2\.|_2_)(.*)$') # pattern for R2 files
+    r1_files = {}
+    r2_files = {}
+    #sort the files into R1 and R2
+    for fpath in file_list:
+        fname = os.path.basename(fpath)
+        # match the file name to the pattern for the file
+        r1_match = r1_pattern.match(fname)
+        r2_match = r2_pattern.match(fname)
+        # get the file prefix (everything before the R1 or R2) and put into dictionary
+        if r1_match:
+            sample_key = r1_match.group(1) # file prefix
+            r1_files[sample_key] = fpath # put into dictionary
+        elif r2_match:
+            sample_key = r2_match.group(1) # file prefix
+            r2_files[sample_key] = fpath # put into dictionary      
+    matched_r1 = []
+    matched_r2 = []
+    # look for the matching R1 and R2 files by key (file prefix) and add to the matched read1 and read2 list
+    e = ''
+    for key in r1_files.keys():
+        if key in r2_files.keys():
+            matched_r1.append(r1_files[key])
+            matched_r2.append(r2_files[key])
+        else:
+            logger.info(f'[ERROR] No R2 pair found for: {r1_files[key]}') # if it doesn't have a matching R2 file, print a message
+            e += f'[ERROR] No R2 pair found for {r1_files[key]}\n'
 
-    # if single-end, return the list of files
-    if rcon == "single-end":
-        logger.info(f"Single-end files: {file_list}")
-        return file_list 
-    # if paired-end, sort the files into R1 and R2
-    elif rcon == "paired-end":
-        #establish the file patterns
-        r1_pattern = re.compile(r'(.+?)(_R1_|_R1\.|.R1\.|_1\.|_1_)(.*)$') # pattern for R1 files
-        r2_pattern = re.compile(r'(.+?)(_R2_|_R2\.|.R2\.|_2\.|_2_)(.*)$') # pattern for R2 files
-        r1_files = {}
-        r2_files = {}
-        #sort the files into R1 and R2
-        for fpath in file_list:
-            fname = os.path.basename(fpath)
-            # match the file name to the pattern for the file
-            r1_match = r1_pattern.match(fname)
-            r2_match = r2_pattern.match(fname)
-            # get the file prefix (everything before the R1 or R2) and put into dictionary
-            if r1_match:
-                sample_key = r1_match.group(1) # file prefix
-                r1_files[sample_key] = fpath # put into dictionary
-            elif r2_match:
-                sample_key = r2_match.group(1) # file prefix
-                r2_files[sample_key] = fpath # put into dictionary      
-        matched_r1 = []
-        matched_r2 = []
-        # look for the matching R1 and R2 files by key (file prefix) and add to the matched read1 and read2 list
-        for key in r1_files.keys():
-            if key in r2_files.keys():
-                matched_r1.append(r1_files[key])
-                matched_r2.append(r2_files[key])
-            else:
-                logger.info(f"No R2 pair found for: {r1_files[key]}") # if it doesn't have a matching R2 file, print a message
-        # look for R2 files that don't have a matching R1 file
-        for key in r2_files.keys():
-            if key not in r1_files.keys():
-                logger.info(f"No R1 pair found for: {r2_files[key]}") # print message  
+    # look for R2 files that don't have a matching R1 file
+    for key in r2_files.keys():
+        if key not in r1_files.keys():
+            logger.info(f'[ERROR] No R1 pair found for: {r2_files[key]}') # print message  
+            e += f'[ERROR] No R1 pair found for {r2_files[key]}\n'
+
+    if not e:
         # return the matched read1 and read2 lists
         logger.info(f"Paired-end files: {matched_r1, matched_r2}")
         return matched_r1, matched_r2
+    else:
+        raise Exception(f"Read pairs not found.\n{e}")
 
 
 
@@ -164,6 +134,7 @@ def mappy_al_ref(ref: str, tech: str, cpus:int):
 
 def mappy_al_header(ref: str, rfmt:str, file_list: list):
     """Make a header for the alignment file."""
+    shrimp_progress(1, 1, 0, "preprocessing") # Add "Pulling in reads/Counting reads"
     read_count = 0
     fasta = pysam.FastaFile(ref)
     sq_head = pysam.AlignmentHeader(
@@ -457,7 +428,6 @@ def mappy_al_single(rfmt: str, cpus: int, tech: str, ref: str, outf: str, foutf:
         file1: list of files to align
         Returns: alignment stats as pandas dataframe
     """
-    shrimp_progress(1, 1, 0, "preprocessing") # start progress bar
     aligner = mappy_al_ref(ref, tech, cpus) # create aligner
     flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0} # create flagstats dictionary
     sq_head, read_count = mappy_al_header(ref, rfmt, file1) # create header and get totalcount of reads
@@ -595,7 +565,6 @@ def mappy_al_paired(cpus: int, tech: str, ref: str, outf: str, foutf:str, file1:
         file2: list of read 2 files to align
         Returns: alignment summary stats as pandas dataframe
     """
-    shrimp_progress(1, 1, 0, "preprocessing") # start progress bar
     aligner = mappy_al_ref(ref, tech, cpus) # create aligner
     flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0, 'read1':0, 'read2':0} # create flagstats dictionary
 
@@ -771,20 +740,6 @@ def bed_genome_match(bed: str, genome: str) -> bool:
         logger.info(f'BED: {set(bedlist)}')
         logger.info(f'GENOME: {set(genomelist)}')
         return False
-
-
-def str2bool(v):
-    '''
-    converts bool-like strings to True/False boolean objects
-    '''
-    if isinstance(v, bool):
-       return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 def ampliconstats_length(bed: str) -> int:
