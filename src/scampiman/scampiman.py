@@ -88,7 +88,7 @@ def scampiman():
                         help='path of temporary directory. Default is {OUTPUT_DIR}/{SAMPLE}_temp/')
     parser.add_argument("--keep", 
                         dest="KEEP", default='none', choices=['none', 'all', 'bam'],
-                        help='True of False. Keep the intermediate files, located in the temporary directory? \
+                        help='Keep the intermediate files, located in the temporary directory? \
                             none: keep no files. all: keep all files. \
                             bam: keep ampclip.bam for downstream processing and move to main output directory.') 
     parser.add_argument("-wd", "--working_directory", dest="c_workdir", type=str, default=def_workdir, 
@@ -137,23 +137,35 @@ def scampiman():
             sys.exit()
     
     if str(args.intype) == "files":
+        reads_list = args.READS
         for fi in args.READS:
             if not os.path.isfile(fi):
                 logger.error(f'[ERROR] input read file not found at {fi}. exiting.')
                 sys.exit()
-        if str(args.rcon) == "paired-end" and len(args.READS) != 2:
-            logger.error(f'[ERROR] with "-c paired-end", you must specify 2 input reads files, not {len(args.READS)}. exiting.')
+        if str(args.rcon) == "paired-end" and len(args.READS) % 2 != 0:
+            logger.error(f'[ERROR] with "-c paired-end", you must provide an even number of input reads files, not {len(args.READS)}. exiting.')
             sys.exit()
     elif str(args.intype) == "directory":
+        reads_list = []
         for di in args.READS:
-            pattern = f"*{args.rfmt}"
-            dfiles = glob.glob(os.path.join(di, pattern))
+            if str(args.rfmt) == "fastq":
+                pattern = ('*.fastq', '*.fq', '*.fastq.gz', '*.fq.gz')
+                dfiles = []
+                for p in pattern:
+                    dfiles.extend(glob.glob(os.path.join(di, p)))
+            else:
+                pattern = f"*{args.rfmt}"
+                dfiles = glob.glob(os.path.join(di, pattern))
+        
             if not os.path.isdir(di):
                 logger.error(f'[ERROR] input read directory not found at {di}. exiting.')
                 sys.exit()
             if not dfiles:
                 logger.error(f'[ERROR] input read files not found within {di}. exiting.')
                 sys.exit()
+
+            reads_list += dfiles
+
     #check if bed and genome files have same accessions
     if not scaf.bed_genome_match(
         str(args.bed),
@@ -184,7 +196,6 @@ def scampiman():
         logger.info(f"temp dir: {sca_temp}")
         logger.info(os.listdir(sca_temp))
 
-    #READ_STR = ' '.join(map(str,args.READS))
     logger.info(f'read string: ')
     logger.info(f'{args.READS}')
 
@@ -211,9 +222,6 @@ def scampiman():
             print(f"🦐 single-end reads ")
             print(f"✨✨ Let's go! ✨✨")
             try:
-                scaf.shrimp_progress(1, 0, 0, "preprocessing")
-                reads_list = scaf.file_paths(args.READS, args.rfmt, args.rcon, args.intype)
-
                 alignstats = scaf.mappy_al_single(
                     args.rfmt,
                     def_CPUs,
@@ -223,10 +231,11 @@ def scampiman():
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
                     reads_list
                 )
-
-                scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
             except Exception as e:
                 logger.error(f'[ERROR] Failed to align single-end read files: {e}')
+                sys.exit()
+
+
 
         elif str(args.rcon) == "paired-end":
             logger.info(f'> paired-end option ')
@@ -234,8 +243,7 @@ def scampiman():
             print(f"✨✨ Let's go ✨✨")
 
             try:
-                scaf.shrimp_progress(2, 0, 0, "preprocessing")
-                read1_list, read2_list = scaf.file_paths(args.READS, args.rfmt, args.rcon, args.intype)
+                read1_list, read2_list = scaf.paired_paths(reads_list)
 
                 alignstats = scaf.mappy_al_paired(
                     def_CPUs,
@@ -246,14 +254,16 @@ def scampiman():
                     read1_list,
                     read2_list
                 )
-
-                scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
             except Exception as e:
                 logger.error(f'[ERROR] Failed to align paired-end read files: {e}')
+                sys.exit()
+
+        scaf.stats_tsv(alignstats, 1, os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.summarystats.tsv'))
 
     except Exception as e:
         logger.error("[ERROR] Read Alignment ERROR: ")
         logger.error(e)
+        sys.exit()
 
     align_endtime = time.perf_counter()
 
@@ -336,6 +346,7 @@ def scampiman():
         except Exception as e:
             logger.error("[ERROR] Amplicon Analysis ERROR: ")
             logger.error(e)
+            sys.exit()
 
     logger.info(f"### scampiman outputs: ")
     for fin in [
