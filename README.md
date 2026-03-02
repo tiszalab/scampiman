@@ -70,7 +70,7 @@ Note: consider making an isolated environment (conda or venv) for `scampiman`.
 
 1. Simply `pip install` with the release tarball link.
 
-`pip install https://github.com/tiszalab/scampiman/archive/refs/tags/v0.1.0.tar.gz`
+`pip install https://github.com/tiszalab/scampiman/archive/refs/tags/v0.1.1.tar.gz`
 
 **Alternative Methods**:
 
