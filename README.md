@@ -1,3 +1,5 @@
+[![PyPI version](https://badge.fury.io/py/scampiman.svg?icon=si%3Apython)](https://badge.fury.io/py/scampiman)
+
 🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\
 🌊🌊🌊🌊🌊🌊🌊🌊🦐🦐🦐🌊🦐🦐🌊🦐🦐🌊🦐🦐🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\
 🌊🌊🌊🌊🌊🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🦐🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊\
@@ -68,9 +70,12 @@ Note: consider making an isolated environment (conda or venv) for `scampiman`.
 
 **Easiest Way**
 
-1. Simply `pip install` with the release tarball link.
 
-`pip install https://github.com/tiszalab/scampiman/archive/refs/tags/v0.1.2.tar.gz`
+1. Simply install scampiman using pip.
+
+```
+pip install scampiman
+```
 
 **Alternative Methods**:
 
