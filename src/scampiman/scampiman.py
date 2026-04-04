@@ -222,7 +222,8 @@ def scampiman():
             print(f"🦐 single-end reads ")
             print(f"✨✨ Let's go! ✨✨")
             try:
-                alignstats = scaf.mappy_al_single(
+                alignstats = scaf.mappy_al(
+                    args.rcon,
                     args.rfmt,
                     def_CPUs,
                     args.SEQTECH,
@@ -245,7 +246,9 @@ def scampiman():
             try:
                 read1_list, read2_list = scaf.paired_paths(reads_list)
 
-                alignstats = scaf.mappy_al_paired(
+                alignstats = scaf.mappy_al(
+                    args.rcon,
+                    args.rfmt,
                     def_CPUs,
                     args.SEQTECH,
                     str(args.genome),
