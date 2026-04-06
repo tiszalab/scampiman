@@ -484,16 +484,16 @@ def _fmt_pe_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
             ("MD", hit['MD']),
             ("cs", hit['cs']),
         ]
-        spec['sa_tag_str'] = f"{hit['ctg']},{hit['r_st']},{strand_char},{spec['cigarstring']},{hit['mapq']},{hit['NM']}"
+        #spec['sa_tag_str'] = f"{hit['ctg']},{hit['r_st']},{strand_char},{spec['cigarstring']},{hit['mapq']},{hit['NM']}"
         formatted.append(spec)
 
-    # second pass: set mate info, TLEN, and per-read SA tags
-    all_sa_r1 = [formatted[idx]['sa_tag_str'] for idx in hit_r1_idx]
-    all_sa_r2 = [formatted[idx]['sa_tag_str'] for idx in hit_r2_idx]
+    # second pass: set mate info, TLEN
+    #all_sa_r1 = [formatted[idx]['sa_tag_str'] for idx in hit_r1_idx]
+    #all_sa_r2 = [formatted[idx]['sa_tag_str'] for idx in hit_r2_idx]
 
-    for p, ((h1, idx1), (h2, idx2)) in enumerate(zip(
+    for ((h1, idx1), (h2, idx2)) in zip(
         zip(hit_r1, hit_r1_idx), zip(hit_r2, hit_r2_idx)
-    )):
+    ):
         s1 = formatted[idx1]
         s2 = formatted[idx2]
 
@@ -521,16 +521,6 @@ def _fmt_pe_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
         if ref_olap == 0:  # no reference overlap
             is_qcfail = True
 
-        r1_sa = all_sa_r1.copy()
-        r1_sa.pop(p)  # remove this hit's own SA tag string
-        sa = r1_sa
-        s1['tags'] = s1['tags'] + [("SA", ';'.join(sa))] if sa else s1['tags']
-
-        r2_sa = all_sa_r2.copy()
-        r2_sa.pop(p)  # remove this hit's own SA tag string
-        sa = r2_sa
-        s2['tags'] = s2['tags'] + [("SA", ';'.join(sa))] if sa else s2['tags']
-
     if len(hit_r1) != len(hit_r2): #if there are not the same number of hits for both reads
         is_qcfail = True
 
@@ -544,6 +534,10 @@ def _fmt_pe_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 "qual":       q['query_qualities'],
                 "is_read1":   True,
                 "is_read2":   False,
+                "is_forward":           True,
+                "is_reverse":           False,
+                "mate_is_forward":      False,
+                "mate_is_reverse":      True,
             }
         else:
             unmapped_spec = {
@@ -552,6 +546,10 @@ def _fmt_pe_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 "qual":       q['query_qualities2'],
                 "is_read1":   False,
                 "is_read2":   True,
+                "is_forward":           False,
+                "is_reverse":           True,
+                "mate_is_forward":      True,
+                "mate_is_reverse":      False,
             }
         unmapped_spec.update({
             "reference_name":       None,
@@ -562,14 +560,11 @@ def _fmt_pe_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
             "is_secondary":         False,
             "is_proper_pair":       False,
             "is_unmapped":          True,
-            "is_forward":           True,
-            "mate_is_reverse":      False,
             "next_reference_name":  None,
             "next_reference_start": 0,
             "template_length":      0,
             "cigarstring":          None,
-#            "mate_is_mapped":       True,
-            #"tags":                 [],
+            "tags":                 [],
         })
         formatted.append(unmapped_spec)
 
@@ -592,14 +587,17 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outf: str, fo
     """
 #    aligner = mappy_al_ref(ref, tech, cpus) # create aligner
     flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0} # create flagstats dictionary
+    if rcon == "paired-end":
+        flagstats['read_1'] = 0
+        flagstats['read_2'] = 0
     sq_head, read_count, read_iter = alignment_preprocessing(ref, rfmt, file1) if rcon == "single-end" else alignment_preprocessing(ref, rfmt, file1, file2) # create header and get totalcount of reads
     obam = pysam.AlignmentFile(outf, 'wb', header=sq_head) # create output BAM file
     fbam = pysam.AlignmentFile(foutf, 'wb', header=sq_head) # create failed BAM file
     flagstats['total_reads'] = read_count
     # for scampiman progress bar
     pool_tally = 0
-    multiplier = int(read_count / 50) # after how many reads to update progress bar
-    progress_list = [read_count * multiplier for read_count in range(0,50)] # create list of read counts to update progress bar based on multiplier
+    multiplier = int(read_count / 25) # after how many reads to update progress bar
+    progress_list = [read_count * multiplier for read_count in range(0,25)] # create list of read counts to update progress bar based on multiplier
     progress_list.append(read_count) # add total number of reads to progress list
     header_starttime = time.perf_counter() # start timer for progress bar
     
