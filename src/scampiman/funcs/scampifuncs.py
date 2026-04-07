@@ -48,17 +48,16 @@ def shrimp_progress(total_process: int, elapsed_process: int, time_taken: float,
 
     if job == "preprocessing":
         print("🌊  Pulling in reads 🌊  Counting reads  🌊")
+    elif job == "processing":
+        print(f"\n🌊 Processing {total_process} reads with shrimp power! 🌊\n")
     elif job == "align":
-        if elapsed_process == 0:
-            print(f"\n🌊 Processing {total_process} reads with shrimp power! 🌊\n")
-        else:
-            td = timedelta(seconds=int(time_taken))
-            done = elapsed_process == total_process
-            mark = " ✔" if done else ""
-            sys.stdout.write(f"\r🦐 {percent:3d}% | Alignment{mark} | {td}  ")
-            if done:
-                sys.stdout.write("\n")
-            sys.stdout.flush()
+        td = timedelta(seconds=int(time_taken))
+        done = elapsed_process == total_process
+        mark = " ✔" if done else ""
+        sys.stdout.write(f"\r🦐 {percent:3d}% | Alignment{mark} | {td}  ")
+        if done:
+            sys.stdout.write("\n")
+        sys.stdout.flush()
     elif job == "amp":
         td = timedelta(seconds=int(time_taken))
         done = elapsed_process == total_process
@@ -155,11 +154,9 @@ def alignment_preprocessing(ref: str, rfmt:str, file_list: list, file2: list = N
     if rfmt == "bam":
         for file in file_list:
             bam = pysam.AlignmentFile(file, 'rb', check_sq=False)
-            #read_count += bam.count(until_eof=True)
             for i in bam:
                 reads_list.append((i.query_name, i.query_sequence, i.query_qualities, i.get_tags()))
                 read_count += 1
-
             if len(sq_head) == 2: # the only thing in the freshly made header is the SQ tag and an empty PG tag
                 sq_head = bam.header.to_dict() | sq_head # combine the headers
             else: # if the header has already been combined
@@ -185,6 +182,7 @@ def alignment_preprocessing(ref: str, rfmt:str, file_list: list, file2: list = N
     # add in the PG tag (gives details about mappy and which read files were used for alignment)
     sq_head['PG'].append({'ID': 'aligner', 'PN': 'mappy', 'VN': mp.__version__, 'DS': 'minimap2 alignment', 'CL': ' '.join(file_list)})
     logger.info(f"Total reads to align: {read_count}")
+    shrimp_progress(read_count, 1, 0, "processing") # reporting the read number
 
     sq_head_obj = pysam.AlignmentHeader.from_dict(sq_head)
     return sq_head_obj, read_count, reads_list
@@ -255,11 +253,7 @@ def align_pe_chunk(chunk: List) -> List[Dict[str, Any]]:
     """Align a list of single-end reads and return serialisable results."""
     global _aligner
     out: List[Dict[str, Any]] = []
-#        reads_list.append((read1.name, read1.sequence, read1.quality, read2.name, read2.sequence, read2.quality))
     for read1_name, read1_sequence, read1_quality, read2_name, read2_sequence, read2_quality in chunk:
-#                 hits = list(aligner.map(read1.sequence, seq2=read2.sequence, cs=True, MD=True)) # mappy mapping
-        #        rec_list = mappy_hits_bam_fmt_paired({"query_name_read1": read1.name, "query_name_read2": read2.name,"seq1": read1.sequence, "seq2": read2.sequence, "quality1": read1.quality, "quality2": read2.quality}, hits, sq_head)
-
         hits = [hit_to_dict(h) for h in _aligner.map(read1_sequence, seq2=read2_sequence, cs=True, MD=True)]
         q = {"query_name": read1_name, "query_sequence": read1_sequence, "query_qualities": read1_quality, "query_name2": read2_name, "query_sequence2": read2_sequence, "query_qualities2": read2_quality, "hits": hits}
         if hits:
@@ -362,7 +356,7 @@ def _fmt_se_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 is_qcfail = True
 
         de_denom   = sum(l if op == 0 else 1 for l, op in hit['cigar'])
-        de         = 1 - (hit['mlen'] / de_denom) #if de_denom else 0
+        de         = 1 - (hit['mlen'] / de_denom)
         rounded_de = round(de, str(round(de, 6)).split('.')[1].count('0') + 6)
         tp          = 'P' if hit['is_primary'] else 'S'
         strand_char = '+' if hit['strand'] == 1 else '-'
@@ -428,7 +422,7 @@ def _fmt_pe_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
             q_seq  = q['query_sequence2']
             q_qual = q['query_qualities2']
             hit_r2.append(hit)
-            hit_r2_idx.append(i) # adds the index of the hit to the hit_r1_idx list
+            hit_r2_idx.append(i) # adds the index of the hit to the hit_r2_idx list
 
         if not hit['is_primary']:
             tp = 'S'
@@ -437,7 +431,7 @@ def _fmt_pe_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
             else: #hit['read_num'] == 2
                 prime_q = set(range(hit_r2[0]['q_st'], hit_r2[0]['q_en']))
             hit_q     = set(range(hit['q_st'], hit['q_en']))
-            qlen_olap = len(prime_q & hit_q) / len(hit_q) #if hit_q else 0
+            qlen_olap = len(prime_q & hit_q) / len(hit_q)
             if qlen_olap < 0.5:
                 spec['is_supplementary'] = True
             else:
@@ -484,13 +478,9 @@ def _fmt_pe_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
             ("MD", hit['MD']),
             ("cs", hit['cs']),
         ]
-        #spec['sa_tag_str'] = f"{hit['ctg']},{hit['r_st']},{strand_char},{spec['cigarstring']},{hit['mapq']},{hit['NM']}"
         formatted.append(spec)
 
     # second pass: set mate info, TLEN
-    #all_sa_r1 = [formatted[idx]['sa_tag_str'] for idx in hit_r1_idx]
-    #all_sa_r2 = [formatted[idx]['sa_tag_str'] for idx in hit_r2_idx]
-
     for ((h1, idx1), (h2, idx2)) in zip(
         zip(hit_r1, hit_r1_idx), zip(hit_r2, hit_r2_idx)
     ):
@@ -517,7 +507,7 @@ def _fmt_pe_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
 
         s1_refRange = range(min(h1['r_st'], h1['r_en']), max(h1['r_st'], h1['r_en']))
         s2_refRange = range(min(h2['r_en'], h2['r_st']), max(h2['r_en'], h2['r_st']))
-        ref_olap = len(list(set(s1_refRange) & set(s2_refRange))) / len(s2_refRange) #if hit_refRange else 0
+        ref_olap = len(list(set(s1_refRange) & set(s2_refRange))) / len(s2_refRange)
         if ref_olap == 0:  # no reference overlap
             is_qcfail = True
 
@@ -596,8 +586,8 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outf: str, fo
     flagstats['total_reads'] = read_count
     # for scampiman progress bar
     pool_tally = 0
-    multiplier = int(read_count / 25) # after how many reads to update progress bar
-    progress_list = [read_count * multiplier for read_count in range(0,25)] # create list of read counts to update progress bar based on multiplier
+    chunk_size = 10000 if int(read_count / cpus) < 10000 else int(read_count / cpus) # after how many reads to update progress bar
+    progress_list = [read_num * chunk_size for read_num in range(0,int(read_count/chunk_size))] # create list of read counts to update progress bar based on multiplier
     progress_list.append(read_count) # add total number of reads to progress list
     header_starttime = time.perf_counter() # start timer for progress bar
     
@@ -609,18 +599,18 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outf: str, fo
         initializer=mappy_al_ref,
         initargs=(ref, tech),
     ) as executor:
+
         futures = {
             executor.submit(worker_fn, chunk): idx
-            for idx, chunk in enumerate(_chunked(read_iter, multiplier))
+            for idx, chunk in enumerate(_chunked(read_iter, chunk_size))
         }
+
         for future in as_completed(futures):
             # Header stuff
             header_endtime = time.perf_counter()
             time_taken = header_endtime - header_starttime
-            #print(progress_list[pool_tally])
             shrimp_progress(read_count, progress_list[pool_tally], time_taken, "align")
             pool_tally += 1
-            #print(pool_tally)
 
             for result in future.result():
                 if not result['hits']:
@@ -713,7 +703,6 @@ def stats_tsv(stat_dict: dict, nrows: int, outf: str):
     Write stats in a dictionary into a tsv file
     """
     # set up rows for tsv file
-    #col_names = list(stat_dict.keys()) #was scared this wouldn't be good because is stat_dict.values in the same order?
     col_names = []
     rows = [[] for i in range(nrows)] # a list of empty list (1 list per row)
 
