@@ -122,9 +122,11 @@ def scampiman():
     out_directory = os.path.join(str(args.c_workdir), str(args.OUTPUT_DIR))
 
     if not args.cpus:
-        def_CPUs = os.cpu_count()
+        def_CPUs = 8 if os.cpu_count() > 8 else os.cpu_count()
+        logger.info(f"Using {def_CPUs} CPUs")
     else:
         def_CPUs = args.cpus
+        logger.info(f"Using {def_CPUs} CPUs")
 
     if not os.path.isdir(out_directory):
         os.makedirs(out_directory)
@@ -181,6 +183,11 @@ def scampiman():
         logger.error("[ERROR] Exiting.")
         sys.exit()
 
+    # if args.SEQTECH is "ont" and args.rcon is "paired-end", exit
+    if str(args.SEQTECH) == "ont" and str(args.rcon) == "paired-end":
+        logger.error("[ERROR] Analysis of Paired-end reads is not supported for ONT data.")
+        logger.error("[ERROR] Exiting.")
+        sys.exit()
 
     if str(args.TEMP_DIR) == 'default':
         sca_temp = os.path.join(out_directory, f'{str(args.SAMPLE)}_temp')
