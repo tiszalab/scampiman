@@ -120,17 +120,16 @@ def scampiman():
     
     ## make directories
     out_directory = os.path.join(str(args.c_workdir), str(args.OUTPUT_DIR))
+    if not os.path.isdir(out_directory):
+        os.makedirs(out_directory)
 
+    # set cpus
     if not args.cpus:
         def_CPUs = 8 if os.cpu_count() > 8 else os.cpu_count()
         logger.info(f"Using {def_CPUs} CPUs")
     else:
         def_CPUs = args.cpus
         logger.info(f"Using {def_CPUs} CPUs")
-
-    if not os.path.isdir(out_directory):
-        os.makedirs(out_directory)
-
 
     #check if files exist
     for inf in [args.genome, args.bed]:
