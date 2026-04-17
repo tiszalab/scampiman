@@ -125,7 +125,8 @@ def scampiman():
 
     # set cpus
     if not args.cpus:
-        def_CPUs = 8 if os.cpu_count() > 8 else os.cpu_count()
+        #def_CPUs = 8 if os.cpu_count() > 8 else os.cpu_count()
+        def_CPUs = os.cpu_count()
         logger.info(f"Using {def_CPUs} CPUs")
     else:
         def_CPUs = args.cpus
@@ -234,8 +235,8 @@ def scampiman():
                     def_CPUs,
                     args.SEQTECH,
                     str(args.genome),
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.bam'),
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
+                    sca_temp,
+                    str(args.SAMPLE),
                     reads_list
                 )
             except Exception as e:
@@ -258,8 +259,8 @@ def scampiman():
                     def_CPUs,
                     args.SEQTECH,
                     str(args.genome),
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.bam'),
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
+                    sca_temp,
+                    str(args.SAMPLE),
                     read1_list,
                     read2_list
                 )
