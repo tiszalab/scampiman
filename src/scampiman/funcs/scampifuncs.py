@@ -3,6 +3,7 @@ import re, shutil
 import pysam
 import sys, os, time
 import mappy as mp
+from math import ceil
 from datetime import timedelta
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Any, Dict, Generator, List, Optional, Tuple
@@ -141,7 +142,7 @@ def mappy_al_ref(ref: str, tech: str, sq_head: dict, cpus: int):
         tech (str): Sequencing technology (ont or illumina).
         sq_head (dict): BAM header dict.
     """
-    global _aligner, _sq_head, _ali_count
+    global _aligner, _sq_head, _cpus
     if tech == "ont":
         targ = "lr:hq"
     elif tech == "illumina":
@@ -150,8 +151,9 @@ def mappy_al_ref(ref: str, tech: str, sq_head: dict, cpus: int):
     _aligner = mp.Aligner(ref,
         preset=targ)
     if not _aligner:
-        raise RuntimeError(f"mappy failed to load/build index from: {ref_path}")
-    _sq_head = sq_head
+        raise RuntimeError(f"mappy failed to load/build index from: {ref}")
+    #_sq_head = sq_head
+    _sq_head = pysam.AlignmentHeader.from_dict(sq_head)
     _cpus = cpus
 
 
@@ -235,8 +237,8 @@ def alignment_preprocessing(ref: str, rfmt:str, file_list: list, file2: list = N
     logger.info(f"Total reads to align: {read_count}")
     shrimp_progress(read_count, 1, 0, "processing") # reporting the read number
 
-    sq_head_obj = pysam.AlignmentHeader.from_dict(sq_head) # make the header object
-    return sq_head_obj, read_count, reads_list
+    #sq_head_obj = pysam.AlignmentHeader.from_dict(sq_head) # make the header object
+    return sq_head, read_count, reads_list
 
 
 
@@ -675,7 +677,12 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outd: str, sa
     foutf = os.path.join(outd, f'{sample}.failed.bam')
 
     flagstats['total_reads'] = read_count
-    chunk_size = int(read_count/(cpus - 1))
+
+    chunk_size = max(
+        1, 
+        ceil(read_count/(cpus))
+        )
+    #chunk_size = int(read_count/(cpus - 1))
     header_starttime = time.perf_counter() # start timer for progress bar
     
     worker_fn = align_se_chunk if rcon == "single-end" else align_pe_chunk
