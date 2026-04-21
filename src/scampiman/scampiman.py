@@ -25,7 +25,7 @@ def scampiman():
     # I like to keep this print statement for debugging
     #print(f"this script dir: {os.path.dirname(__file__) }")
 
-    __version__ = "0.1.2"
+    __version__ = "0.1.3"
 
     toolname = "scampiman"
 
@@ -277,7 +277,7 @@ def scampiman():
 
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
-            scaf.shrimp_progress(3, 0, 0, "amp")
+            scaf.shrimp_progress(4, 0, 0, "amp")
 
             logger.info(f'samcov')
             pysam.samtools.coverage(
@@ -289,7 +289,7 @@ def scampiman():
             )
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime
-            scaf.shrimp_progress(3, 1, time_taken, "amp")
+            scaf.shrimp_progress(4, 1, time_taken, "amp")
             logger.info(f'ampclip')
             logger.info(f'longest amplicon length: {int(scaf.ampliconstats_length(args.bed)/2)}bp')
 
@@ -306,27 +306,25 @@ def scampiman():
             )
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime
-            scaf.shrimp_progress(3, 2, time_taken, "amp")
-            pysam.samtools.ampliconstats(
+            scaf.shrimp_progress(4, 2, time_taken, "amp")
+            logger.info(f'amptable')
+
+            ampstats_out = pysam.samtools.ampliconstats(
                 '-@', str(def_CPUs),
                 '-l', str(scaf.ampliconstats_length(args.bed)),
-                '-o', 
-                os.path.join(
-                    args.OUTPUT_DIR,
-                    f'{str(args.SAMPLE)}.ampliconstats.tsv'
-                ),
                 args.bed,
                 os.path.join(
                     sca_temp, 
                     f'{str(args.SAMPLE)}.ampclip.bam'
                     )
             )
+            with open(os.path.join(args.OUTPUT_DIR, f'{str(args.SAMPLE)}.ampliconstats.tsv'), 'w') as asf:
+                asf.write(ampstats_out)
 
-            logger.info(f"temp dir: {sca_temp}")
-            logger.info(os.listdir(sca_temp))
+            amp_endtime = time.perf_counter()
+            time_taken = amp_endtime - amp_starttime            
+            scaf.shrimp_progress(4, 3, time_taken, "amp")
 
-
-            logger.info(f'amptable')
             scaf.amptable(
                 os.path.join(
                     args.OUTPUT_DIR,
@@ -341,7 +339,11 @@ def scampiman():
 
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime            
-            scaf.shrimp_progress(3, 3, time_taken, "amp")
+            scaf.shrimp_progress(4, 4, time_taken, "amp")
+
+            logger.info(f"temp dir: {sca_temp}")
+            logger.info(os.listdir(sca_temp))
+
 
         except Exception as e:
             logger.error("[ERROR] Amplicon Analysis ERROR: ")
