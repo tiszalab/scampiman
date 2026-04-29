@@ -123,15 +123,19 @@ def paired_paths(file_list: list):
 # Worker-process state (one aligner + header per process, created by the initializer)
 _aligner: Optional[mp.Aligner] = None
 _rcon = None
+_py_head = None
+_temp_dir = None
 
-def mappy_al_ref(ref: str, tech: str, rcon: str):
-    """Set up reference and BAM header for the alignment.
+def mappy_al_ref(ref: str, tech: str, rcon: str, sq_head_dict: dict, temp_dir: str):
+    """Set up reference, BAM header, and temp dir for worker processes.
     Args:
         ref (str): Reference genome file path.
         tech (str): Sequencing technology (ont or illumina).
-        sq_head (dict): BAM header dict.
+        rcon (str): Read configuration (single-end or paired-end).
+        sq_head_dict (dict): BAM header dict.
+        temp_dir (str): Directory for per-chunk temp BAM files.
     """
-    global _aligner, _rcon
+    global _aligner, _rcon, _py_head, _temp_dir
     if tech == "ont":
         targ = "lr:hq"
     elif tech == "illumina":
@@ -142,6 +146,8 @@ def mappy_al_ref(ref: str, tech: str, rcon: str):
     if not _aligner:
         raise RuntimeError(f"mappy failed to load/build index from: {ref}")
     _rcon = rcon
+    _py_head = sq_head_dict
+    _temp_dir = temp_dir
 
 
 def alignment_preprocessing(ref: str, rfmt:str, file_list: list, file2: list = None):
@@ -403,19 +409,22 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
 
 
 # Worker functions (run inside the process pool)
-def align_chunk(chunk: list) -> Dict[str, Any]:
-    """Align a list of reads; return pass/fail dicts and stats.
+def align_chunk(chunk: list, chunk_idx: int) -> Dict[str, Any]:
+    """Align a list of reads, write results to per-chunk temp BAM files.
     Args:
         chunk (list): Read dicts (SE) or [read1_dict, read2_dict] pairs (PE).
+        chunk_idx (int): Unique index for naming temp BAM files.
     Returns:
-        Dict[str, Any]: pass_filter, failed_filter lists and chunk_stats.
+        Dict[str, Any]: pass_bam, fail_bam paths and chunk_stats.
     """
-    global _aligner
-    global _rcon
+    global _aligner, _rcon, _py_head, _temp_dir
     chunk_stats = {'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0} # create flagstats dictionary
 
-    pass_filter = []
-    failed_filter = []
+    py_head = pysam.AlignmentHeader.from_dict(_py_head)
+    pass_path = os.path.join(_temp_dir, f"chunk_{chunk_idx}.pass.bam")
+    fail_path = os.path.join(_temp_dir, f"chunk_{chunk_idx}.fail.bam")
+    obam = pysam.AlignmentFile(pass_path, 'wb', header=py_head)
+    fbam = pysam.AlignmentFile(fail_path, 'wb', header=py_head)
 
     for read_info in chunk:
         if _rcon == "single-end":
@@ -432,7 +441,7 @@ def align_chunk(chunk: list) -> Dict[str, Any]:
         if not hits:
             for i in reads:
                 chunk_stats['unmapped'] += 1
-                failed_filter.append(i)
+                fbam.write(pysam.AlignedSegment.from_dict(i, header=py_head))
             continue
 
         formatted, is_qcfail = _fmt_hits(q)
@@ -442,15 +451,18 @@ def align_chunk(chunk: list) -> Dict[str, Any]:
 
         if is_qcfail:
             chunk_stats['removed_reads_primary'] += 1 if _rcon == "single-end" else 2
-            failed_filter += recs
-            
+            for rec in recs:
+                fbam.write(pysam.AlignedSegment.from_dict(rec, header=py_head))
         else:
-            pass_filter += recs
+            for rec in recs:
+                obam.write(pysam.AlignedSegment.from_dict(rec, header=py_head))
             chunk_stats['kept_primary'] += 1 if _rcon == "single-end" else 2
             chunk_stats['kept_secondary'] += specs['is_secondary']
             chunk_stats['kept_supplementary'] += specs['is_supplementary']
-            
-    return {'pass_filter': pass_filter, 'failed_filter': failed_filter, 'chunk_stats': chunk_stats}
+
+    obam.close()
+    fbam.close()
+    return {'pass_bam': pass_path, 'fail_bam': fail_path, 'chunk_stats': chunk_stats}
 
 
 # Do the mappy alignment
@@ -469,37 +481,35 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outf: str, fo
     """
     flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0} # create flagstats dictionary
     sq_head, read_count, read_iter = alignment_preprocessing(ref, rfmt, file1) if rcon == "single-end" else alignment_preprocessing(ref, rfmt, file1, file2) # create header and get totalcount of reads
-    py_head = pysam.AlignmentHeader.from_dict(sq_head)
-    obam     = pysam.AlignmentFile(outf,  'wb', header=py_head)
-    fbam     = pysam.AlignmentFile(foutf, 'wb', header=py_head)
     flagstats['total_reads'] = read_count
+    temp_dir = os.path.dirname(outf)
 
     chunk_size = 10000 if max(1, ceil(read_count/(10000))) < 150 else ceil(read_count/150)
     num_chunks = max(1, ceil(read_count/(chunk_size)))
 
     align_starttime = time.perf_counter() # start timer for progress bar
 
-    # Dispatch chunks to the process pool and write results as they arrive
+    pass_bams = []
+    fail_bams = []
+
+    # Dispatch chunks to the process pool; workers write temp BAMs directly
     with ProcessPoolExecutor(
         max_workers=cpus,
         initializer=mappy_al_ref,
-        initargs=(ref, tech, rcon),
+        initargs=(ref, tech, rcon, sq_head, temp_dir),
     ) as executor:
         pool_tally = 0
         shrimp_progress(num_chunks, pool_tally, 0, "align")
 
         futures = {
-            executor.submit(align_chunk, chunk): idx
+            executor.submit(align_chunk, chunk, idx): idx
             for idx, chunk in enumerate(_chunked(read_iter, chunk_size))
         }
 
         for future in as_completed(futures):
             result = future.result()
-
-            for rec in result['pass_filter']:
-                obam.write(pysam.AlignedSegment.from_dict(rec, header = py_head))
-            for rec in result['failed_filter']:
-                fbam.write(pysam.AlignedSegment.from_dict(rec, header = py_head))
+            pass_bams.append(result['pass_bam'])
+            fail_bams.append(result['fail_bam'])
 
             for key in result["chunk_stats"]:
                 if key in flagstats:
@@ -509,10 +519,16 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outf: str, fo
             align_endtime = time.perf_counter()
             time_taken = align_endtime - align_starttime
             shrimp_progress(num_chunks, pool_tally, time_taken, "align")
-    
-    obam.close()
-    fbam.close()
+
+    # Concatenate per-chunk BAMs into final output files
+    pysam.cat("-o", outf, *pass_bams)
+    pysam.cat("-o", foutf, *fail_bams)
     pysam.sort("-o", outf.replace('.bam', '.sort.bam'), outf)
+
+    # Clean up temp chunk BAMs
+    for f in pass_bams + fail_bams:
+        os.remove(f)
+
     return flagstats
 
 
