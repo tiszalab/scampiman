@@ -419,6 +419,8 @@ def align_chunk(chunk: list, chunk_idx: int) -> Dict[str, Any]:
     """
     global _aligner, _rcon, _py_head, _temp_dir
     chunk_stats = {'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0} # create flagstats dictionary
+    if _rcon == "paired-end":
+        chunk_stats.update({'read1':0, 'read2':0})
 
     py_head = pysam.AlignmentHeader.from_dict(_py_head)
     pass_path = os.path.join(_temp_dir, f"chunk_{chunk_idx}.pass.bam")
@@ -459,6 +461,9 @@ def align_chunk(chunk: list, chunk_idx: int) -> Dict[str, Any]:
             chunk_stats['kept_primary'] += 1 if _rcon == "single-end" else 2
             chunk_stats['kept_secondary'] += specs['is_secondary']
             chunk_stats['kept_supplementary'] += specs['is_supplementary']
+            if _rcon == "paired-end":
+                chunk_stats['read1'] += 1
+                chunk_stats['read2'] += 1
 
     obam.close()
     fbam.close()
@@ -480,12 +485,18 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outf: str, fo
         Returns: alignment stats as pandas dataframe
     """
     flagstats = {'total_reads':0, 'unmapped':0,'removed_reads_primary':0, 'kept_primary':0, 'kept_secondary':0, 'kept_supplementary':0} # create flagstats dictionary
+    if rcon == "paired-end":
+        flagstats.update({'read1':0, 'read2':0})
+
     sq_head, read_count, read_iter = alignment_preprocessing(ref, rfmt, file1) if rcon == "single-end" else alignment_preprocessing(ref, rfmt, file1, file2) # create header and get totalcount of reads
     flagstats['total_reads'] = read_count
     temp_dir = os.path.dirname(outf)
 
-    chunk_size = 10000 if max(1, ceil(read_count/(10000))) < 150 else ceil(read_count/150)
-    num_chunks = max(1, ceil(read_count/(chunk_size)))
+    num_items = len(read_iter) # number of items to chunk (SE: reads, PE: read pairs)
+    #chunk_size = 20000 
+    chunk_size = 10000 if max(1, ceil(num_items/10000)) < 150 else ceil(num_items/150)
+    num_chunks = max(1, ceil(num_items/chunk_size))
+    print(f"Chunk size: {chunk_size}, Number of chunks: {num_chunks}")
 
     align_starttime = time.perf_counter() # start timer for progress bar
 
