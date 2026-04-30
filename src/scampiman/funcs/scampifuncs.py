@@ -534,7 +534,7 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outf: str, fo
     # Concatenate per-chunk BAMs into final output files
     pysam.cat("-o", outf, *pass_bams)
     pysam.cat("-o", foutf, *fail_bams)
-    pysam.sort("-o", outf.replace('.bam', '.sort.bam'), outf)
+    pysam.samtools.sort("-@", str(cpus), "-o", outf.replace('.bam', '.sort.bam'), outf)
 
     # Clean up temp chunk BAMs
     for f in pass_bams + fail_bams:
