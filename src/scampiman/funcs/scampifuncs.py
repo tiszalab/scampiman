@@ -302,14 +302,14 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
             rec['cigar'] = hit.cigar_str
         if not is_primary:
             if _rcon == "single-end":
+                rec['cigar'] = rec['cigar'].replace("S", "H")
+                #rec['cigar'] = f"{c_front}H{hit.cigar_str}{c_end}H" # building cigar string for secondary alignment; H = hard clipping
                 if hit.strand == 1:
                     rec['seq']  = rec_dict['seq'][hit.q_st:hit.q_en] # report only the aligned sequence bases
                     rec['qual'] = rec_dict['qual'][hit.q_st:hit.q_en] # report only the aligned quality positions
-                    rec['cigar'] = f"{hit.q_st}H{hit.cigar_str}{len(rec_dict['seq'])-hit.q_en}H" # building cigar string for secondary alignment; H = hard clipping
                 else:
                     rec['seq']  = mp.revcomp(rec_dict['seq'][hit.q_st:hit.q_en]) # report only the aligned sequence bases as reverse complement
                     rec['qual'] = rec_dict['qual'][hit.q_st:hit.q_en][::-1] # report only the aligned quality positions as reverse
-                    rec['cigar'] = f"{len(rec_dict['seq'])-hit.q_en}H{hit.cigar_str}{hit.q_st}H" # building cigar string for secondary alignment; H = hard clipping
                 pq_st, pq_en = min(primary_hit.q_st, primary_hit.q_en), max(primary_hit.q_st, primary_hit.q_en)
             else:
                 if hit.read_num == 1:
@@ -337,7 +337,7 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 elif is_supplementary and primary_hit.strand == hit.strand:  # if the hit is supplementary and on the same strand as the primary hit
                     is_qcfail = True
         ## creating tags
-        ### de tag: Gap-compressed per-base sequence divergence = matching 
+        ### de tag: Gap-compressed per-base sequence divergence = matching
         de_denom   = sum(l if op == 0 else 1 for l, op in hit.cigar) # loop through the array of CIGAR [length, operation]; Add up the number of matched bases and any other operation (insertion, deletion, etc.)
         de         = 1 - (hit.mlen / de_denom)
         rounded_de = round(de, str(round(de, 6)).split('.')[1].count('0') + 6)
@@ -353,8 +353,20 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
         rec_list.append(rec)
 
         if _rcon == "single-end":
+            cig_dict = {}
+            for l, op in hit.cigar:
+                cig_dict[op] = cig_dict.get(op, 0) + l
+
+            i_val, d_val = cig_dict.get(1, 0), cig_dict.get(2, 0)
+            diff = i_val - d_val
+            indel = f"{diff}I" if diff > 0 else (f"{-diff}D" if diff < 0 else "")
+            m_val = cig_dict.get(0) if min(i_val, d_val) == 0 else cig_dict.get(0) + min(i_val, d_val)
+            sa_front = f"{c_front}S" if c_front else ""
+            sa_end = f"{c_end}S" if c_end else ""
+
             strand_char = '+' if hit.strand == 1 else '-' # strand character for SA tag: forward (+) or reverse (-)
-            sa_tag_str.append(f"{hit.ctg},{hit.r_st},{strand_char},{rec['cigar']},{hit.mapq},{hit.NM}")
+            sa_tag_str.append(f"{hit.ctg},{rec['ref_pos']},{strand_char},{sa_front + str(m_val) + "M" + indel + sa_end},{hit.mapq},{hit.NM}")
+
     # second pass:
     if _rcon == "single-end":
         for hit_index, segment in enumerate(rec_list):
@@ -493,10 +505,8 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outf: str, fo
     temp_dir = os.path.dirname(outf)
 
     num_items = len(read_iter) # number of items to chunk (SE: reads, PE: read pairs)
-    #chunk_size = 20000 
     chunk_size = 10000 if max(1, ceil(num_items/10000)) < 150 else ceil(num_items/150)
     num_chunks = max(1, ceil(num_items/chunk_size))
-    print(f"Chunk size: {chunk_size}, Number of chunks: {num_chunks}")
 
     align_starttime = time.perf_counter() # start timer for progress bar
 
@@ -535,7 +545,6 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, ref: str, outf: str, fo
     pysam.cat("-o", outf, *pass_bams)
     pysam.cat("-o", foutf, *fail_bams)
     pysam.samtools.sort("-@", str(cpus), "-o", outf.replace('.bam', '.sort.bam'), outf)
-
     # Clean up temp chunk BAMs
     for f in pass_bams + fail_bams:
         os.remove(f)

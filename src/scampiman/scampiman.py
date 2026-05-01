@@ -125,6 +125,7 @@ def scampiman():
         def_CPUs = os.cpu_count()
     else:
         def_CPUs = args.cpus
+    logger.info(f"Using {def_CPUs} CPUs")
 
     if not os.path.isdir(out_directory):
         os.makedirs(out_directory)
@@ -220,8 +221,6 @@ def scampiman():
         if str(args.rcon) == "single-end":
             logger.info(f'> single-end option ')
             print(f"🦐 single-end reads ")
-            print(f"👨🏻‍🍳 cooking on {def_CPUs} cpus ")
-
             print(f"✨✨ Let's go! ✨✨")
             try:
                 alignstats = scaf.mappy_al(
@@ -243,7 +242,6 @@ def scampiman():
         elif str(args.rcon) == "paired-end":
             logger.info(f'> paired-end option ')
             print(f"🦐 paired-end reads ")
-            print(f"👨🏻‍🍳 cooking on {def_CPUs} cpus ")
             print(f"✨✨ Let's go! ✨✨")
 
             try:
@@ -388,8 +386,6 @@ def scampiman():
     endtime = time.perf_counter()
 
     time_taken = endtime - starttime
-    print(f"⏲️   served in {timedelta(seconds=time_taken)}")
-
     logger.info(f"> scampiman took {timedelta(seconds=time_taken)}")
 
 # this is how to run the pct function by calling this script from the command line
