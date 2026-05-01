@@ -303,7 +303,6 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
         if not is_primary:
             if _rcon == "single-end":
                 rec['cigar'] = rec['cigar'].replace("S", "H")
-                #rec['cigar'] = f"{c_front}H{hit.cigar_str}{c_end}H" # building cigar string for secondary alignment; H = hard clipping
                 if hit.strand == 1:
                     rec['seq']  = rec_dict['seq'][hit.q_st:hit.q_en] # report only the aligned sequence bases
                     rec['qual'] = rec_dict['qual'][hit.q_st:hit.q_en] # report only the aligned quality positions
@@ -363,9 +362,10 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
             m_val = cig_dict.get(0) if min(i_val, d_val) == 0 else cig_dict.get(0) + min(i_val, d_val)
             sa_front = f"{c_front}S" if c_front else ""
             sa_end = f"{c_end}S" if c_end else ""
+            c_string = sa_front + str(m_val) + "M" + indel + sa_end
 
             strand_char = '+' if hit.strand == 1 else '-' # strand character for SA tag: forward (+) or reverse (-)
-            sa_tag_str.append(f"{hit.ctg},{rec['ref_pos']},{strand_char},{sa_front + str(m_val) + "M" + indel + sa_end},{hit.mapq},{hit.NM}")
+            sa_tag_str.append(f"{hit.ctg},{rec['ref_pos']},{strand_char},{c_string},{hit.mapq},{hit.NM}")
 
     # second pass:
     if _rcon == "single-end":
