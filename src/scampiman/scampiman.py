@@ -25,7 +25,7 @@ def scampiman():
     # I like to keep this print statement for debugging
     #print(f"this script dir: {os.path.dirname(__file__) }")
 
-    __version__ = "0.1.3"
+    __version__ = "0.2.0"
 
     toolname = "scampiman"
 
@@ -125,6 +125,7 @@ def scampiman():
         def_CPUs = os.cpu_count()
     else:
         def_CPUs = args.cpus
+    logger.info(f"Using {def_CPUs} CPUs")
 
     if not os.path.isdir(out_directory):
         os.makedirs(out_directory)
@@ -222,14 +223,15 @@ def scampiman():
             print(f"🦐 single-end reads ")
             print(f"✨✨ Let's go! ✨✨")
             try:
-                alignstats = scaf.mappy_al_single(
+                alignstats = scaf.mappy_al(
+                    args.rcon,
                     args.rfmt,
                     def_CPUs,
                     args.SEQTECH,
                     str(args.genome),
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}.bam'),
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
-                    reads_list
+                    reads_list,
                 )
             except Exception as e:
                 logger.error(f'[ERROR] Failed to align single-end read files: {e}')
@@ -240,12 +242,14 @@ def scampiman():
         elif str(args.rcon) == "paired-end":
             logger.info(f'> paired-end option ')
             print(f"🦐 paired-end reads ")
-            print(f"✨✨ Let's go ✨✨")
+            print(f"✨✨ Let's go! ✨✨")
 
             try:
                 read1_list, read2_list = scaf.paired_paths(reads_list)
 
-                alignstats = scaf.mappy_al_paired(
+                alignstats = scaf.mappy_al(
+                    args.rcon,
+                    args.rfmt,
                     def_CPUs,
                     args.SEQTECH,
                     str(args.genome),
@@ -254,6 +258,7 @@ def scampiman():
                     read1_list,
                     read2_list
                 )
+
             except Exception as e:
                 logger.error(f'[ERROR] Failed to align paired-end read files: {e}')
                 sys.exit()
@@ -381,7 +386,6 @@ def scampiman():
     endtime = time.perf_counter()
 
     time_taken = endtime - starttime
-
     logger.info(f"> scampiman took {timedelta(seconds=time_taken)}")
 
 # this is how to run the pct function by calling this script from the command line
