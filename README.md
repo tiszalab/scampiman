@@ -64,6 +64,44 @@ Removal of these reads is important because it accounts for:
 2. potential ligation or mapping errors.
 3. the necessity for the entire (gap-less) amplicon to be represented in the analysis.
 
+
+# BED File
+The order of primers within the BED file is important in ensuring that the amplicons are correctly accounted for. The amplicons should be represented in the BED file with one or more LEFT primers ("+") followed by one or more RIGHT primers. Alternative primers will be grouped with the amplicon containing it's partnering strand. Below is the example given in the [samtools ampliconstats manual page](https://www.htslib.org/doc/samtools-ampliconstats.html):
+
+```
+MN908947.3 	 1868  	 1890 	 nCoV-2019_7_LEFT_alt0  	 60   	 +
+MN908947.3 	 1875  	 1897 	 nCoV-2019_7_LEFT       	 60   	 +
+MN908947.3 	 2242  	 2264 	 nCoV-2019_7_RIGHT_alt5 	 60   	 -
+MN908947.3 	 2247  	 2269 	 nCoV-2019_7_RIGHT      	 60   	 -
+MN908947.3 	 2181  	 2205 	 nCoV-2019_8_LEFT       	 60   	 +
+MN908947.3 	 2568  	 2592 	 nCoV-2019_8_RIGHT      	 60   	 -
+```
+
+This example results in the recognition of 2 amplicons, with both the alt and the main amplicon primers grouped into a single amplicon due to it's Left_alt, Left, Right_alt, Right record in the BED file:
+
+| accession  | amplicon_number | lprimer             | rprimer             |
+| ---------- | --------------- | ------------------- | ------------------- |
+| MN908947.3 | 1               | 1869-1890,1876-1897 | 2243-2264,2248-2269 |
+| MN908947.3 | 2               | 2182-2205           | 2569-2592           |
+
+If the alternative primers were recorded in the BED file one after another (Left_alt, Right_alt, Left, Right), it would results in a 3 amplicon assignment:
+
+```
+MN908947.3 	 1868  	 1890 	 nCoV-2019_7_LEFT_alt0  	 60   	 +
+MN908947.3 	 2242  	 2264 	 nCoV-2019_7_RIGHT_alt5 	 60   	 -
+MN908947.3 	 1875  	 1897 	 nCoV-2019_7_LEFT       	 60   	 +
+MN908947.3 	 2247  	 2269 	 nCoV-2019_7_RIGHT      	 60   	 -
+MN908947.3 	 2181  	 2205 	 nCoV-2019_8_LEFT       	 60   	 +
+MN908947.3 	 2568  	 2592 	 nCoV-2019_8_RIGHT      	 60   	 -
+```
+
+| accession  | amplicon_number | lprimer   | rprimer   |
+| ---------- | --------------- | --------- | --------- |
+| MN908947.3 | 1               | 1869-1890 | 2243-2264 |
+| MN908947.3 | 2               | 1876-1897 | 2248-2269 |
+| MN908947.3 | 3               | 2182-2205 | 2569-2592 |
+
+
 # Install
 
 Note: consider making an isolated environment (conda or venv) for `scampiman`.
