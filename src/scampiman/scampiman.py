@@ -25,7 +25,7 @@ def scampiman():
     # I like to keep this print statement for debugging
     #print(f"this script dir: {os.path.dirname(__file__) }")
 
-    __version__ = "0.2.0"
+    __version__ = "0.2.1"
 
     toolname = "scampiman"
 
@@ -228,9 +228,9 @@ def scampiman():
                     args.rfmt,
                     def_CPUs,
                     args.SEQTECH,
+                    scaf.amplicon_length(args.bed),
                     str(args.genome),
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}.bam'),
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
                     reads_list,
                 )
             except Exception as e:
@@ -252,9 +252,9 @@ def scampiman():
                     args.rfmt,
                     def_CPUs,
                     args.SEQTECH,
+                    scaf.amplicon_length(args.bed),
                     str(args.genome),
                     os.path.join(sca_temp, f'{str(args.SAMPLE)}.bam'),
-                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.failed.bam'),
                     read1_list,
                     read2_list
                 )
@@ -296,10 +296,18 @@ def scampiman():
             time_taken = amp_endtime - amp_starttime
             scaf.shrimp_progress(4, 1, time_taken, "amp")
             logger.info(f'ampclip')
-            logger.info(f'longest amplicon length: {int(scaf.ampliconstats_length(args.bed)/2)}bp')
+            logger.info(f'longest amplicon length: {scaf.amplicon_length(args.bed)}bp')
+
+
 
             pysam.samtools.ampliconclip(
-                '--both-ends',
+                '--strand',
+                '--clipped',
+                '--no-excluded',
+                '--rejects-file',
+                os.path.join(
+                    sca_temp, 
+                    f'{str(args.SAMPLE)}.rejects.bam'),
                 '-@', str(def_CPUs),
                 '-b', args.bed,
                 '-o', 
@@ -309,6 +317,9 @@ def scampiman():
                     ),
                 os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')
             )
+
+
+
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime
             scaf.shrimp_progress(4, 2, time_taken, "amp")
@@ -316,7 +327,7 @@ def scampiman():
 
             ampstats_out = pysam.samtools.ampliconstats(
                 '-@', str(def_CPUs),
-                '-l', str(scaf.ampliconstats_length(args.bed)),
+                '-l', str(scaf.amplicon_length(args.bed) * 2),
                 args.bed,
                 os.path.join(
                     sca_temp, 
@@ -391,4 +402,3 @@ def scampiman():
 # this is how to run the pct function by calling this script from the command line
 if __name__ == "__main__":
     scampiman()
-
