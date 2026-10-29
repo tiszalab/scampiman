@@ -282,47 +282,64 @@ def scampiman():
 
     if os.path.isfile(os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')):
         try:
-            scaf.shrimp_progress(4, 0, 0, "amp")
-
-            logger.info(f'samcov')
-            pysam.samtools.coverage(
-                '-o', os.path.join(
-                    args.OUTPUT_DIR, 
-                    f'{str(args.SAMPLE)}.samcov.tsv'
-                    ),
-                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam') 
-            )
-            amp_endtime = time.perf_counter()
-            time_taken = amp_endtime - amp_starttime
-            scaf.shrimp_progress(4, 1, time_taken, "amp")
+            scaf.shrimp_progress(5, 0, 0, "amp")
             logger.info(f'ampclip')
             logger.info(f'longest amplicon length: {scaf.amplicon_length(args.bed)}bp')
 
+            if str(args.rcon) == "single-end":
+                pysam.samtools.ampliconclip(
+                    '--both-ends',
+                    '--clipped',
+                    '--no-excluded',
+                    '--rejects-file',
+                    os.path.join(
+                        sca_temp, 
+                        f'{str(args.SAMPLE)}.rejects.bam'),
+                    '-@', str(def_CPUs),
+                    '-b', args.bed,
+                    '-o', 
+                    os.path.join(
+                        sca_temp, 
+                        f'{str(args.SAMPLE)}.temp.ampclip.bam'
+                        ),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')
+                )
 
+            else:
+                pysam.samtools.ampliconclip(
+                    '--strand',
+                    '--clipped',
+                    '--no-excluded',
+                    '--rejects-file',
+                    os.path.join(
+                        sca_temp, 
+                        f'{str(args.SAMPLE)}.rejects.bam'),
+                    '-@', str(def_CPUs),
+                    '-b', args.bed,
+                    '-o', 
+                    os.path.join(
+                        sca_temp, 
+                        f'{str(args.SAMPLE)}.temp.ampclip.bam'
+                        ),
+                    os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')
+                )
 
-            pysam.samtools.ampliconclip(
-                '--strand',
-                '--clipped',
-                '--no-excluded',
-                '--rejects-file',
-                os.path.join(
+            amp_endtime = time.perf_counter()
+            time_taken = amp_endtime - amp_starttime
+            scaf.shrimp_progress(5, 1, time_taken, "amp")
+
+            scaf.process_ampclip_bams(os.path.join(
+                    sca_temp, 
+                    f'{str(args.SAMPLE)}.temp.ampclip.bam'),
+                    os.path.join(
                     sca_temp, 
                     f'{str(args.SAMPLE)}.rejects.bam'),
-                '-@', str(def_CPUs),
-                '-b', args.bed,
-                '-o', 
-                os.path.join(
-                    sca_temp, 
-                    f'{str(args.SAMPLE)}.ampclip.bam'
-                    ),
-                os.path.join(sca_temp, f'{str(args.SAMPLE)}.sort.bam')
-            )
-
+                    def_CPUs)
 
 
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime
-            scaf.shrimp_progress(4, 2, time_taken, "amp")
+            scaf.shrimp_progress(5, 2, time_taken, "amp")
             logger.info(f'amptable')
 
             ampstats_out = pysam.samtools.ampliconstats(
@@ -339,7 +356,7 @@ def scampiman():
 
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime            
-            scaf.shrimp_progress(4, 3, time_taken, "amp")
+            scaf.shrimp_progress(5, 3, time_taken, "amp")
 
             scaf.amptable(
                 os.path.join(
@@ -355,11 +372,23 @@ def scampiman():
 
             amp_endtime = time.perf_counter()
             time_taken = amp_endtime - amp_starttime            
-            scaf.shrimp_progress(4, 4, time_taken, "amp")
+            scaf.shrimp_progress(5, 4, time_taken, "amp")
+
+            logger.info(f'samcov')
+            pysam.samtools.coverage(
+                '-o', os.path.join(
+                    args.OUTPUT_DIR, 
+                    f'{str(args.SAMPLE)}.samcov.tsv'
+                    ),
+                os.path.join(sca_temp, f'{str(args.SAMPLE)}.ampclip.bam') 
+            )
+
+            amp_endtime = time.perf_counter()
+            time_taken = amp_endtime - amp_starttime            
+            scaf.shrimp_progress(5, 5, time_taken, "amp")
 
             logger.info(f"temp dir: {sca_temp}")
             logger.info(os.listdir(sca_temp))
-
 
         except Exception as e:
             logger.error("[ERROR] Amplicon Analysis ERROR: ")

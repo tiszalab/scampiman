@@ -508,19 +508,35 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 s1['next_ref_pos'] = s2['ref_pos'] #set the next reference start for read1
                 s2['next_ref_name']  = s1['ref_name'] #set the next reference name for read2
                 s2['next_ref_pos'] = s1['ref_pos'] #set the next reference start for read2
-            ### set TLEN and strand flag
+            ### set TLEN and strand information (flag and positions)
+                f_start = None
+                f_end = None
+                r_start = None
+                r_end = None
                 if h1.strand != 1:  # read1 is reverse
                     s1['length'] = int(s1['next_ref_pos']) - int(s1['ref_pos']) - h1.mlen - h1.NM # read2 start - read1 start - read1 length (not gaps, ambigious, or mismatches) - read1 NM (mismatches)
                     s2['length'] = str(s1['length'] * -1) # read1 template length * -1
                     s1['length'] = str(s1['length'])
                     if h2.strand == 1:
                         s2['flag'] += ['mate_reverse_strand']
+                    # for qc check
+                    f_start = h2.r_st # for qc_check
+                    f_end = h2.r_en # for qc_check
+                    r_start = h1.r_st # for qc_check
+                    r_end = h1.r_en # for qc_check
+
                 elif h1.strand == 1:  # read1 is forward
                     s2['length']= int(s2['next_ref_pos']) - int(s2['ref_pos']) - h2.mlen - h2.NM # read1 start - read2 start - read2 length (not gaps, ambigious, or mismatches) - read2 NM (mismatches)
                     s1['length'] = str(s2['length'] * -1) # read2 template length * -1
                     s2['length'] = str(s2['length'])
                     if h2.strand != 1:
                         s1['flag'] += ['mate_reverse_strand']
+                    # for qc check
+                    f_start = h1.r_st
+                    f_end = h1.r_en
+                    r_start = h2.r_st
+                    r_end = h2.r_en
+
             ### assumming pass QC filter, set flag value
                 s1['flag'] = str(_calc_flag(s1['flag']))
                 s2['flag'] = str(_calc_flag(s2['flag']))
@@ -529,14 +545,18 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 if h1.strand == h2.strand: #if both reads are on the same strand
                     is_qcfail = True
                     paired_ftags = f"{paired_ftags}Same strand orientation of read1/read2;"
+
                 # over lap in reference
-                s1_r_st, s1_r_en = min(h1.r_st, h1.r_en), max(h1.r_st, h1.r_en)
-                s2_r_st, s2_r_en = min(h2.r_st, h2.r_en), max(h2.r_st, h2.r_en)
-                ref_olap = max(0, min(s1_r_en, s2_r_en) - max(s1_r_st, s2_r_st)) / (s2_r_en - s2_r_st)
+                ref_olap = f_end - r_start
                 #if the reference mapping is not overlapping between the two reads
-                if ref_olap == 0: 
+                if ref_olap < 0: 
                     is_qcfail = True
                     paired_ftags = f"{paired_ftags}No mapped overlap between read1/read2;"
+
+                if f_start >= r_start or f_end >= r_end:
+                    is_qcfail = True
+                    paired_ftags = f"{paired_ftags}Primer dimer;"
+
             ### Set paired failed tags 
                 if is_qcfail:
                     s1['tags'] = [paired_ftags[:-1]] + s1['tags']
@@ -686,10 +706,27 @@ def mappy_al(rcon: str, rfmt: str, cpus: int, tech: str, amp_length: int, ref: s
         raise Exception(f"{e}")
 
 
-def update_ampclip_bams(ampclip: str, failed: str):
+def process_ampclip_bams(bam_path: str, failed_path: str, cpus: int):
     """
+    Process amplicon clip BAM files to identify reads that failed alignment.
     """
-   pysam.samtools.view("-bS", "input.sam", "-o", "output.bam", catch_stdout=False) 
+    remove_path = os.path.join(os.path.dirname(failed_path), f"remove_unclipped_reads.txt")
+    check = set()
+    with open(remove_path, 'w') as out:
+        for reads in pysam.samtools.view("-F", "512", failed_path, catch_stdout=True).strip().split('\n'):
+            name = reads.strip().split('\t')[0]
+            if name in check:
+                continue
+            else:
+                out.write(name + '\n')
+                check.add(name)
+    
+    pysam.samtools.view("-@", str(cpus), "-bS", "-N", f"^{remove_path}", "-o", bam_path.replace('.temp.ampclip.bam', '.temp2.ampclip.bam'), bam_path, catch_stdout=False)
+    pysam.samtools.sort("-@", str(cpus), "-o", bam_path.replace('.temp.ampclip.bam', '.ampclip.bam'), bam_path.replace('.temp.ampclip.bam', '.temp2.ampclip.bam'))
+    
+    os.remove(bam_path.replace('.temp.ampclip.bam', '.temp2.ampclip.bam'))
+    os.remove(bam_path)
+
 
 def stats_tsv(stat_dict: dict, nrows: int, outf: str):
     """
@@ -714,59 +751,36 @@ def stats_tsv(stat_dict: dict, nrows: int, outf: str):
         f.write('\t'.join(col_names) + '\n')
         for wr in rows: # write the rows
             f.write('\t'.join(wr) + '\n')
-    f.close()
 
 
 def amptable(ampstats: str, sampid: str, outf: str):
     """
     Take in the output of ampliconstats, grab the important parts, save it as a tsv file
     """
-    # set up the dictionary
     odf = {'accession': [], 'amplicon_number': [], 'lprimer': [], 'rprimer': []}
-    # get amplicon information for empty keys within dictionary
+    ampstats_cols = {
+        'FREADS': 'amplicon_reads',
+        'FVDEPTH': 'full_length_depth',
+        'FDEPTH': 'avg_depth',
+        'FPCOV-1': 'amplicon_coverage',
+    }
     with open(ampstats, 'r') as lhf:
         for line in lhf:
-            line = line.strip()
-            if line.startswith("AMPLICON"): # this is set up more like a table rows
-                ampinfo = line.split('\t')[1:]
-                odf['accession'].append(ampinfo[0])
-                odf['amplicon_number'].append(ampinfo[1])
-                odf['lprimer'].append(ampinfo[2])
-                odf['rprimer'].append(ampinfo[3])
-
-    row_num = len(odf['amplicon_number']) # get the number of amplicons/ number of rows
-    # reopen file and pull out the rest of the information (the data is set up more like columns)
-    with open(ampstats, 'r') as lhf:
-        for line in lhf:
-            line = line.strip()
-
-            if line.startswith("FREADS"):
-                columns = line.split('\t')[2:]
-                if row_num == len(columns):
-                    odf['amplicon_reads'] = columns
-                else:
-                    raise Exception("amplicon_reads data incorrect length")
-            if line.startswith("FVDEPTH"):
-                columns = line.split('\t')[2:]
-                if row_num == len(columns):
-                    odf['full_length_depth'] = columns
-                else:
-                    raise Exception("full_length_depth data incorrect length")
-            if line.startswith("FDEPTH"):
-                columns = line.split('\t')[2:]
-                if row_num == len(columns):
-                    odf['avg_depth'] = columns
-                else:
-                    raise Exception("avg_depth data incorrect length")
-            if line.startswith("FPCOV-1"):
-                columns = line.split('\t')[2:]
-                if row_num == len(columns):
-                    odf['amplicon_coverage'] = columns
-                else:
-                    raise Exception("amplicon_coverage data incorrect length")
-    #add in the sample_ID column at the end
+            fields = line.rstrip('\n').split('\t')
+            if fields[0] == 'AMPLICON':
+                odf['accession'].append(fields[1])
+                odf['amplicon_number'].append(fields[2])
+                odf['lprimer'].append(fields[3])
+                odf['rprimer'].append(fields[4])
+            elif fields[0] in ampstats_cols:
+                odf[ampstats_cols[fields[0]]] = fields[2:]
+ 
+    row_num = len(odf['amplicon_number'])
+    for col, name in ampstats_cols.items():
+        if name not in odf or len(odf[name]) != row_num:
+            raise Exception(f"{name} data incorrect length")
+ 
     odf['sample_ID'] = [sampid] * row_num
-    # make tsv file
     stats_tsv(odf, row_num, outf)
 
 
