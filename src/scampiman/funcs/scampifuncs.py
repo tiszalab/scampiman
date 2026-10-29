@@ -313,17 +313,18 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
         primary_hit = hits[0]
 
     for i, hit in enumerate(hits): # the i is the index (enumerate) of the hit in the hits list:
-    ### items to reset with each loop
+        ### items to reset with each loop
         is_primary = False
+        is_supplementary = False
         flag_list = []
 
 
-    ### is it primary:
+        ### is it primary:
         if _rcon == "single-end":
             rec_dict = q['rec']
             rec = rec_dict.copy() # copy the blank record dictionary to avoid modifying it (just in case there are multiple hits)
-            #rec['flag'] = 0
-            is_primary = primary_hit
+            rec['flag'] = []
+            is_primary = True if hit == primary_hit else False
         else: #paired-end
             flag_list += ['read_paired']
      ## set read number in pair flag
@@ -334,7 +335,6 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 flag_list += ['first_in_pair']
                 #is_primary = hit.is_primary
                 is_primary = hit.is_primary 
-
                 hit_r1.append(hit)
                 hit_r1_idx.append(i) # adds the index of the hit to the hit_r1_idx list
             else: # read2
@@ -384,17 +384,17 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 else:
                     rec['seq']  = mp.revcomp(rec_dict['seq'][hit.q_st:hit.q_en]) # report only the aligned sequence bases as reverse complement
                     rec['qual'] = rec_dict['qual'][hit.q_st:hit.q_en][::-1] # report only the aligned quality positions as reverse
-         ## identify supplementary vs secondary alignment
-          # primary hit start and end positions on query read 
+                ## identify supplementary vs secondary alignment
+                # primary hit start and end positions on query read 
                 pq_st, pq_en = min(primary_hit.q_st, primary_hit.q_en), max(primary_hit.q_st, primary_hit.q_en) # still under single-end condition; max/min ignores strand direction
             else: # paired-end; primary is always the first read hit
                 if hit.read_num == 1:
-                    pq_st, pq_en = min(hit_r1[0].q_st, hit_r1[0].q_en), max(hit_r1[0].q_st, hit_r1[0].q_en) 
+                    pq_st, pq_en = hit_r1[0].q_st, hit_r1[0].q_en
                 else:
-                    pq_st, pq_en = min(hit_r2[0].q_st, hit_r2[0].q_en), max(hit_r2[0].q_st, hit_r2[0].q_en) 
-          # non-primary hit start and end positions on query read 
+                    pq_st, pq_en = hit_r2[0].q_st, hit_r2[0].q_en 
+            # non-primary hit start and end positions on query read 
             hq_st, hq_en = min(hit.q_st, hit.q_en), max(hit.q_st, hit.q_en)
-          # calculate ratio of overlap of mapped bps on the query read between primary and non-primary hits
+            # calculate ratio of overlap of mapped bps on the query read between primary and non-primary hits
             qlen_olap = max(0, min(pq_en, hq_en) - max(pq_st, hq_st)) / (hq_en - hq_st)
             if qlen_olap < 0.5: # if the mapping bps on the read overlap less than 50% of the hit, it is a supplementary alignment
                 #rec['flag'] += 2048
@@ -405,34 +405,32 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 #rec['flag'] += 256
                 flag_list += ['not_primary_alignment']
                 stats['is_secondary'] += 1
-                is_qcfail = True
                 fail_tag = f"{fail_tag}Secondary alignment;"
-         ## identify technical artifacts within single-end reads
+            ## identify technical artifacts within single-end reads
             if _rcon == "single-end": #QC filter
                 pr_st, pr_en = min(primary_hit.r_st, primary_hit.r_en), max(primary_hit.r_st, primary_hit.r_en)
                 hr_st, hr_en = min(hit.r_st, hit.r_en), max(hit.r_st, hit.r_en)
                 rlen_olap_ratio = max(0, min(pr_en, hr_en) - max(pr_st, hr_st)) / (hr_en - hr_st)
-                if rlen_olap_ratio < 0.5: ## if the overlapping is less than 50% of the primary genomic region, it is a chimeric read
+                if rlen_olap_ratio < 0.5: ## ## if the overlapping is less than 50% of the primary genomic region, it is a chimeric read
                     is_qcfail = True
                     fail_tag = f"{fail_tag}Chimeric read: mapping disjunct;"
                 elif is_supplementary and primary_hit.strand == hit.strand:  # if the hit is supplementary and on the same strand as the primary hit
                     is_qcfail = True
                     fail_tag = f"{fail_tag}Chimeric read: strand congruence;"
-    ### creating tags
-     ## de tag: Gap-compressed per-base sequence divergence = matching
+        ### creating tags
+         ## de tag: Gap-compressed per-base sequence divergence = matching
         de_denom   = sum(l if op == 0 else 1 for l, op in hit.cigar) # loop through the array of CIGAR [length, operation]; Add up the number of matched bases and any other operation (insertion, deletion, etc.)
         de         = 1 - (hit.mlen / de_denom)
         rounded_de = round(de, str(round(de, 6)).split('.')[1].count('0') + 6)
         tp          = 'P' if hit.is_primary else 'S' # tp tag: primary (P) or [supplementary or secondary] (S)
-     ## additional tags
-        #rec['flag'] = str(rec['flag'])
+        ## additional tags
         rec['tags'] = [
             f"NM:i:{hit.NM}",
             f"nn:i:{hit.blen - hit.mlen - hit.NM}",
             f"tp:A:{tp}",
             f"de:f:{rounded_de}"
         ]
-     ## save current approximate CIGAR string to build a list for 'SA' tag in single-end read alignment
+         ## save current approximate CIGAR string to build a list for 'SA' tag in single-end read alignment
         if _rcon == "single-end":
             cig_dict = {}
             for l, op in hit.cigar:
@@ -448,12 +446,12 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
 
             strand_char = '+' if hit.strand == 1 else '-' # strand character for SA tag: forward (+) or reverse (-)
             sa_tag_str.append(f"{hit.ctg},{rec['ref_pos']},{strand_char},{c_string},{hit.mapq},{hit.NM}")
-    ### save flag_list in record 'flag' to calculate proper flag outside of loop (to standardize QC fail across all hits of a given read)
+        ### save flag_list in record 'flag' to calculate proper flag outside of loop (to standardize QC fail across all hits of a given read)
         rec['flag'] = flag_list
-    ### adding record to rec_list
+       ### adding record to rec_list
         rec_list.append(rec)
 
-### second pass outside of loop:
+    ### second pass outside of loop:
     ### update single-end records
     if _rcon == "single-end":
         for hit_index, segment in enumerate(rec_list):
@@ -494,21 +492,21 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                 rec = q['rec2'].copy()
                 rec['tags'] = [f"{fail_tag} only mate (read1) mapped"]
                 rec_list.append(rec)
-     ## format reads mapped in proper pairs
+         ## format reads mapped in proper pairs
         else: # same number of hits for both reads
             for ((h1, idx1), (h2, idx2)) in zip(zip(hit_r1, hit_r1_idx), zip(hit_r2, hit_r2_idx)): # link pairs
-            ## symlink appropriate records in rec_list to modify
+                ## symlink appropriate records in rec_list to modify
                 s1 = rec_list[idx1] #set the read1 hit
                 s2 = rec_list[idx2] #set the read2 hit
-            ## set proper pair flag
+                ## set proper pair flag
                 s1['flag'] += ['read_mapped_in_proper_pair']
                 s2['flag'] += ['read_mapped_in_proper_pair']
-            ### set mate info
+                ### set mate info
                 s1['next_ref_name']  = s2['ref_name'] #set the next reference name for read1
                 s1['next_ref_pos'] = s2['ref_pos'] #set the next reference start for read1
                 s2['next_ref_name']  = s1['ref_name'] #set the next reference name for read2
                 s2['next_ref_pos'] = s1['ref_pos'] #set the next reference start for read2
-            ### set TLEN and strand information (flag and positions)
+                ### set TLEN and strand information (flag and positions)
                 f_start = None
                 f_end = None
                 r_start = None
@@ -537,10 +535,10 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                     r_start = h2.r_st
                     r_end = h2.r_en
 
-            ### assumming pass QC filter, set flag value
+                ### assumming pass QC filter, set flag value
                 s1['flag'] = str(_calc_flag(s1['flag']))
                 s2['flag'] = str(_calc_flag(s2['flag']))
-            ## Start paired qc fail checks and add tags
+                ## Start paired qc fail checks and add tags
                 paired_ftags = fail_tag
                 if h1.strand == h2.strand: #if both reads are on the same strand
                     is_qcfail = True
@@ -557,11 +555,11 @@ def _fmt_hits(q: dict) -> Tuple[List[Dict[str, Any]], bool]:
                     is_qcfail = True
                     paired_ftags = f"{paired_ftags}Primer dimer;"
 
-            ### Set paired failed tags 
+                ### Set paired failed tags 
                 if is_qcfail:
                     s1['tags'] = [paired_ftags[:-1]] + s1['tags']
                     s2['tags'] = [paired_ftags[:-1]] + s2['tags']
-        ## Standardize QC fail result across all hits
+            ## Standardize QC fail result across all hits
             if is_qcfail:
                 for segment in rec_list:
                     segment['flag'] = str(int(segment['flag']) + 512) # 512 = qc_failed code
@@ -713,7 +711,7 @@ def process_ampclip_bams(bam_path: str, failed_path: str, cpus: int):
     remove_path = os.path.join(os.path.dirname(failed_path), f"remove_unclipped_reads.txt")
     check = set()
     with open(remove_path, 'w') as out:
-        for reads in pysam.samtools.view("-F", "512", failed_path, catch_stdout=True).strip().split('\n'):
+        for reads in pysam.samtools.view("-F", "768", failed_path, catch_stdout=True).strip().split('\n'): #512 failed QC; 256 not primary
             name = reads.strip().split('\t')[0]
             if name in check:
                 continue
